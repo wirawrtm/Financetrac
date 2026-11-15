@@ -31,9 +31,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       aria-modal="true"
       aria-labelledby="confirm-modal-title"
     >
-      <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-xl p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
+      <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-xl p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-3 sm:gap-4">
+          <div className="flex items-start gap-3 min-w-0">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                 variant === 'danger'
@@ -43,14 +43,14 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             >
               <AlertTriangle className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3
                 id="confirm-modal-title"
                 className="text-base font-semibold text-slate-900"
               >
                 {title}
               </h3>
-              <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">
+              <p className="mt-1.5 text-sm text-slate-600 leading-relaxed break-words">
                 {description}
               </p>
             </div>
@@ -65,7 +65,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </button>
         </div>
 
-        <div className="mt-6 flex items-center justify-end gap-2.5">
+        <div className="mt-6 flex flex-wrap items-center justify-end gap-2.5">
           <button
             type="button"
             onClick={onCancel}

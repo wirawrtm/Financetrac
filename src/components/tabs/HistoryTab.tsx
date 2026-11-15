@@ -23,6 +23,7 @@ import {
   formatCurrency,
   formatDateID,
   formatMonthYearID,
+  formatNumberID,
   formatShortDateTime,
 } from '../../utils/formatters';
 import { CategoryIcon } from '../CategoryIcon';
@@ -278,7 +279,13 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   return (
     <div className="space-y-6">
       {/* Header & Custom Period Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div
+        className={`flex justify-between gap-3 ${
+          isMobileLayout
+            ? 'flex-col'
+            : 'flex-col sm:flex-row sm:items-center'
+        }`}
+      >
         <div>
           <h2 className="text-xl font-bold text-slate-900">
             Riwayat & Kalender Transaksi
@@ -292,7 +299,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() =>
@@ -324,23 +331,27 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       </div>
 
       {/* Period Summary Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl bg-white border border-slate-100 p-4">
-          <p className="text-xs text-slate-500">Pemasukan Periode</p>
-          <p className="mt-1 text-base font-bold text-slate-900 tabular-nums">
+      <div
+        className={`grid gap-3 ${
+          isMobileLayout ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
+        }`}
+      >
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
+          <p className="text-xs text-slate-500 truncate">Pemasukan Periode</p>
+          <p className="mt-1 text-sm sm:text-base font-bold text-slate-900 tabular-nums truncate">
             {formatCurrency(periodStats.income, profile.currency)}
           </p>
         </div>
-        <div className="rounded-2xl bg-white border border-slate-100 p-4">
-          <p className="text-xs text-slate-500">Pengeluaran Periode</p>
-          <p className="mt-1 text-base font-bold text-[#D9463E] tabular-nums">
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
+          <p className="text-xs text-slate-500 truncate">Pengeluaran Periode</p>
+          <p className="mt-1 text-sm sm:text-base font-bold text-[#D9463E] tabular-nums truncate">
             {formatCurrency(periodStats.expense, profile.currency)}
           </p>
         </div>
-        <div className="rounded-2xl bg-white border border-slate-100 p-4">
-          <p className="text-xs text-slate-500">Selisih Bersih</p>
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
+          <p className="text-xs text-slate-500 truncate">Selisih Bersih</p>
           <p
-            className={`mt-1 text-base font-bold tabular-nums ${
+            className={`mt-1 text-sm sm:text-base font-bold tabular-nums truncate ${
               periodStats.net >= 0 ? 'text-emerald-700' : 'text-[#D9463E]'
             }`}
           >
@@ -348,10 +359,10 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             {formatCurrency(Math.abs(periodStats.net), profile.currency)}
           </p>
         </div>
-        <div className="rounded-2xl bg-white border border-slate-100 p-4">
-          <p className="text-xs text-slate-500">Jumlah Transaksi</p>
-          <p className="mt-1 text-base font-bold text-slate-900 tabular-nums">
-            {periodStats.count} item
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
+          <p className="text-xs text-slate-500 truncate">Jumlah Transaksi</p>
+          <p className="mt-1 text-sm sm:text-base font-bold text-slate-900 tabular-nums truncate">
+            {formatNumberID(periodStats.count)} item
           </p>
         </div>
       </div>
@@ -503,7 +514,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto">
+              <div className="max-w-full flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto">
                 {(['ALL', 'Week 1', 'Week 2', 'Week 3', 'Week 4'] as const).map(
                   (w) => (
                     <button
@@ -522,7 +533,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                 )}
               </div>
 
-              <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
+              <div className="max-w-full flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto">
                 {(
                   [
                     { key: 'all', label: 'Semua' },
@@ -572,12 +583,12 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       return (
                         <div
                           key={trx.id}
-                          className="group flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-slate-50/70 transition-colors"
+                          className="group flex items-center justify-between gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-3 sm:py-3.5 hover:bg-slate-50/70 transition-colors"
                         >
                           <button
                             type="button"
                             onClick={() => onEditTransaction(trx)}
-                            className="flex items-center gap-3.5 min-w-0 flex-1 text-left"
+                            className="flex items-center gap-3 min-w-0 flex-1 text-left"
                           >
                             <CategoryIcon
                               category={cat}
@@ -595,10 +606,10 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                             </div>
                           </button>
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            <div className="text-right">
+                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                            <div className="text-right min-w-0">
                               <p
-                                className={`text-sm font-semibold tabular-nums ${
+                                className={`text-sm font-semibold tabular-nums whitespace-nowrap ${
                                   trx.type === 'expense'
                                     ? 'text-[#D9463E]'
                                     : 'text-slate-900'
@@ -609,7 +620,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                                   type: trx.type,
                                 })}
                               </p>
-                              <p className="text-[11px] text-slate-400 truncate max-w-[140px]">
+                              <p className="text-[11px] text-slate-400 truncate max-w-[100px] sm:max-w-[140px] ml-auto">
                                 {trx.categoryName}
                                 {trx.subcategoryName
                                   ? ` / ${trx.subcategoryName}`
@@ -620,7 +631,9 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                               type="button"
                               onClick={() => onEditTransaction(trx)}
                               aria-label="Edit transaksi"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100"
+                              className={`${
+                                isMobileLayout ? 'hidden' : 'hidden sm:inline-flex'
+                              } p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100`}
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
@@ -628,7 +641,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                               type="button"
                               onClick={() => onDeleteTransaction(trx)}
                               aria-label="Hapus transaksi"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              className="p-2 sm:p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -653,13 +666,13 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           aria-labelledby="custom-cal-title"
         >
           <div className="w-full max-w-2xl rounded-2xl bg-white border border-slate-200 shadow-xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <CalendarRange className="w-5 h-5 text-slate-800" />
-                <div>
+            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100 gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <CalendarRange className="w-5 h-5 text-slate-800 shrink-0" />
+                <div className="min-w-0">
                   <h3
                     id="custom-cal-title"
-                    className="text-base font-semibold text-slate-900"
+                    className="text-sm sm:text-base font-semibold text-slate-900"
                   >
                     Pengaturan Kalender Periode Kustom & Mingguan
                   </h3>
@@ -672,7 +685,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                 type="button"
                 onClick={() => setShowCustomModal(false)}
                 aria-label="Tutup modal kalender"
-                className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500"
+                className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -680,7 +693,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
             <form
               onSubmit={handleSaveCustomModal}
-              className="p-6 space-y-5 overflow-y-auto"
+              className="p-4 sm:p-6 space-y-5 overflow-y-auto"
             >
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">

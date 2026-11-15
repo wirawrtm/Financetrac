@@ -6,6 +6,30 @@ import {
   WeeklyDateRanges,
 } from '../types/finance';
 
+export function formatNumberID(value: number): string {
+  if (!Number.isFinite(value)) return '0';
+  return Math.round(value).toLocaleString('id-ID');
+}
+
+export function formatThousandDigits(raw: string | number): string {
+  const str = typeof raw === 'number' ? String(Math.trunc(raw)) : raw;
+  const isNegative = str.trim().startsWith('-');
+  const digits = str.replace(/[^\d]/g, '');
+  if (!digits) return isNegative ? '-' : '';
+  const cleaned = digits.replace(/^0+(?=\d)/, '');
+  const formatted = cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return isNegative ? `-${formatted}` : formatted;
+}
+
+export function parseThousandDigits(raw: string): number {
+  const trimmed = raw.trim();
+  const isNegative = trimmed.startsWith('-');
+  const digits = trimmed.replace(/[^\d]/g, '');
+  if (!digits) return 0;
+  const num = Number(digits);
+  return isNegative ? -num : num;
+}
+
 export function formatCurrency(
   amount: number,
   currency: 'IDR' | 'USD' = 'IDR',
@@ -24,7 +48,10 @@ export function formatCurrency(
   if (currency === 'USD') {
     const converted = abs / 15500;
     if (options?.compact && converted >= 1000) {
-      return `${sign}$${(converted / 1000).toFixed(1)}k`;
+      return `${sign}$${(converted / 1000).toLocaleString('en-US', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      })}k`;
     }
     return `${sign}$${converted.toLocaleString('en-US', {
       minimumFractionDigits: 2,
@@ -33,10 +60,13 @@ export function formatCurrency(
   }
 
   if (options?.compact && abs >= 1_000_000) {
-    return `${sign}${(abs / 1_000_000).toFixed(1).replace('.0', '')} jt`;
+    const millions = abs / 1_000_000;
+    return `${sign}${millions.toLocaleString('id-ID', {
+      maximumFractionDigits: 1,
+    })} jt`;
   }
   if (options?.compact && abs >= 1_000) {
-    return `${sign}${Math.round(abs / 1_000)} rb`;
+    return `${sign}${Math.round(abs / 1_000).toLocaleString('id-ID')} rb`;
   }
 
   return `${sign}${Math.round(abs).toLocaleString('id-ID')}`;
@@ -173,14 +203,13 @@ export function localFallbackAutoPlot(
 
   const items: AutoPlotItem[] = [];
 
-  const findCat = (keyword: string, fallbackType: TransactionType) => {
-    const match = categories.find(
-      (c) => c.name.toLowerCase().includes(keyword.toLowerCase()) && (c.type === fallbackType || c.type === 'both')
+  const findCat = (keyword: string, _fallbackType: TransactionType) => {
+    const match = categories.find((c) =>
+      c.name.toLowerCase().includes(keyword.toLowerCase())
     );
     if (match) return match;
     return (
-      categories.find((c) => c.name.toLowerCase().includes('lain') && (c.type === fallbackType || c.type === 'both')) ||
-      categories.find((c) => c.type === fallbackType || c.type === 'both') ||
+      categories.find((c) => c.name.toLowerCase().includes('lain')) ||
       categories[0]
     );
   };

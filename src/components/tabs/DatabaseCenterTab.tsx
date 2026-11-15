@@ -19,10 +19,15 @@ import {
   runDatabaseDiagnosticTests,
 } from '../../db/dummyDb';
 import { DummyDatabase } from '../../types/finance';
-import { formatCurrency, formatDateID } from '../../utils/formatters';
+import {
+  formatCurrency,
+  formatDateID,
+  formatNumberID,
+} from '../../utils/formatters';
 
 interface DatabaseCenterTabProps {
   db: DummyDatabase;
+  isMobileLayout?: boolean;
   cloudUser?: {
     uid: string;
     email: string | null;
@@ -66,6 +71,7 @@ function appendTransaction(payload) {
 
 export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
   db,
+  isMobileLayout = false,
   cloudUser,
   isCloudBusy = false,
   onSyncNowToCloud,
@@ -158,7 +164,13 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
       </div>
 
       {/* Cloud Firestore Practical 1-Click Card */}
-      <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div
+        className={`rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 flex justify-between gap-4 ${
+          isMobileLayout
+            ? 'flex-col'
+            : 'flex-col sm:flex-row sm:items-center'
+        }`}
+      >
         <div className="flex items-start gap-3.5 min-w-0">
           <div
             className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -173,7 +185,7 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
             <p className="text-sm font-bold text-slate-900">
               Database Permanen Aktif (Akses Publik)
             </p>
-            <p className="text-xs text-slate-500 mt-0.5 truncate">
+            <p className="text-xs text-slate-500 mt-0.5 break-words">
               Workspace: {cloudUser?.email || 'wirabatik@gmail.com'} ·
               Terhubung langsung tanpa login atau verifikasi.
             </p>
@@ -202,35 +214,39 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
       </div>
 
       {/* Summary Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl bg-white border border-slate-100 p-4">
+      <div
+        className={`grid gap-3 ${
+          isMobileLayout ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
+        }`}
+      >
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
           <p className="text-xs text-slate-500">Baris Transaksi</p>
           <p className="mt-1 text-lg font-bold text-slate-900 tabular-nums">
-            {db.transactions.length}
+            {formatNumberID(db.transactions.length)}
           </p>
         </div>
-        <div className="rounded-2xl bg-white border border-slate-100 p-4">
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
           <p className="text-xs text-slate-500">Kategori Aktif</p>
           <p className="mt-1 text-lg font-bold text-slate-900 tabular-nums">
-            {db.categories.length}
+            {formatNumberID(db.categories.length)}
           </p>
         </div>
-        <div className="rounded-2xl bg-white border border-slate-100 p-4">
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
           <p className="text-xs text-slate-500">Aset Galeri</p>
           <p className="mt-1 text-lg font-bold text-slate-900 tabular-nums">
-            {db.gallery.length}
+            {formatNumberID(db.gallery.length)}
           </p>
         </div>
-        <div className="rounded-2xl bg-white border border-slate-100 p-4">
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
           <p className="text-xs text-slate-500">Mesin Penyimpanan</p>
-          <p className="mt-1 text-sm font-bold text-emerald-700">
+          <p className="mt-1 text-sm font-bold text-emerald-700 truncate">
             {cloudUser ? 'Cloud Firestore (Aktif)' : 'Cloud Firestore'}
           </p>
         </div>
       </div>
 
       {/* Sub-navigation */}
-      <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-xl w-fit">
+      <div className="max-w-full overflow-x-auto flex items-center gap-1 p-1 bg-slate-100 rounded-xl w-fit">
         {(
           [
             { key: 'tables', label: 'Tabel Data' },
@@ -243,7 +259,7 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
             key={tab.key}
             type="button"
             onClick={() => setSubTab(tab.key)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
               subTab === tab.key
                 ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -256,7 +272,7 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
 
       {/* Sub-Tab 1: Data Tables Viewer */}
       {subTab === 'tables' && (
-        <div className="rounded-2xl bg-white border border-slate-100 p-5 space-y-4">
+        <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-1.5">
               {(
@@ -367,7 +383,6 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
                   <tr className="border-b border-slate-200 text-slate-500">
                     <th className="py-2.5 px-2 font-semibold">ID</th>
                     <th className="py-2.5 px-2 font-semibold">Nama Kategori</th>
-                    <th className="py-2.5 px-2 font-semibold">Tipe</th>
                     <th className="py-2.5 px-2 font-semibold">Sub-Kategori</th>
                   </tr>
                 </thead>
@@ -380,7 +395,6 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
                       <td className="py-2.5 px-2 font-semibold text-slate-900">
                         {c.name}
                       </td>
-                      <td className="py-2.5 px-2">{c.type}</td>
                       <td className="py-2.5 px-2 text-slate-600">
                         {c.subcategories.map((s) => s.name).join(', ') || '-'}
                       </td>
@@ -488,7 +502,11 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
           )}
 
           {activeTable === 'profile' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div
+              className={`grid gap-3 text-xs ${
+                isMobileLayout ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
+              }`}
+            >
               <div className="p-3 rounded-xl bg-slate-50">
                 <span className="text-slate-500">Nama Pemilik</span>
                 <p className="mt-0.5 font-semibold text-slate-900">
@@ -512,7 +530,7 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
               </div>
               <div className="p-3 rounded-xl bg-slate-50">
                 <span className="text-slate-500">Nomor Kartu & Rekening</span>
-                <p className="mt-0.5 font-mono text-slate-900">
+                <p className="mt-0.5 font-mono text-slate-900 break-words">
                   {db.userProfile.cardNumber} · {db.userProfile.bankAccount}
                 </p>
               </div>
@@ -523,7 +541,11 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
 
       {/* Sub-Tab 2: Backup & Reset */}
       {subTab === 'manage' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div
+          className={`grid gap-4 ${
+            isMobileLayout ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'
+          }`}
+        >
           <div className="rounded-2xl bg-white border border-slate-100 p-5 space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
               <Database className="w-4 h-4" />
@@ -615,21 +637,21 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
               {diagLogs.map((log, i) => (
                 <div
                   key={i}
-                  className="flex items-start justify-between gap-3 rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-xs"
+                  className="flex flex-wrap items-start justify-between gap-2 rounded-xl bg-slate-50 border border-slate-100 px-3.5 sm:px-4 py-3 text-xs"
                 >
-                  <div className="flex items-start gap-2.5">
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
                     {log.status === 'PASS' ? (
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     ) : (
                       <XCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                     )}
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-semibold text-slate-900">{log.step}</p>
-                      <p className="text-slate-600 mt-0.5">{log.detail}</p>
+                      <p className="text-slate-600 mt-0.5 break-words">{log.detail}</p>
                     </div>
                   </div>
                   <span className="font-mono text-[11px] text-slate-400 shrink-0 tabular-nums">
-                    {log.status} · {log.durationMs}ms
+                    {log.status} · {formatNumberID(log.durationMs)}ms
                   </span>
                 </div>
               ))}
@@ -640,8 +662,8 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
 
       {/* Sub-Tab 4: Read-only Script Archive */}
       {subTab === 'script' && (
-        <div className="rounded-2xl bg-white border border-slate-100 p-5 space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-bold text-slate-900">
                 Arsip Script Referensi (Hanya-Baca)
@@ -654,7 +676,7 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
             <button
               type="button"
               onClick={handleCopyScript}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-800"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-800 shrink-0"
             >
               <Copy className="w-3.5 h-3.5" />
               Salin Script

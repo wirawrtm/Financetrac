@@ -29,6 +29,8 @@ import {
   clearLegacyDummyStorage,
   clearTransactionsOnly,
   createEmptyDatabase,
+  ensureProtectedSavingSubcategory,
+  isProtectedSavingSubcategory,
   validateImportedDatabase,
 } from './db/dummyDb';
 import {
@@ -225,7 +227,26 @@ export default function App() {
         onCategoriesUpdate: (categories) => {
           if (cancelled) return;
           if (categories.length > 0) {
-            applyCloudPatch((prev) => ({ ...prev, categories }));
+            const { categories: normalizedCategories, changed } =
+              ensureProtectedSavingSubcategory(categories);
+            applyCloudPatch((prev) => ({
+              ...prev,
+              categories: normalizedCategories,
+            }));
+            if (changed) {
+              const prevSnapshot = { ...dbRef.current, categories };
+              const nextSnapshot = {
+                ...dbRef.current,
+                categories: normalizedCategories,
+              };
+              void syncDiffToFirestore(
+                PRIMARY_WORKSPACE_UID,
+                prevSnapshot,
+                nextSnapshot
+              ).catch(() => {
+                // Non-fatal: UI already has normalized Saving subcategory
+              });
+            }
           }
           markReady('cat');
         },
@@ -464,6 +485,17 @@ export default function App() {
     subId: string,
     newName: string
   ) => {
+    const targetCat = dbRef.current.categories.find((c) => c.id === categoryId);
+    const targetSub = targetCat?.subcategories.find((s) => s.id === subId);
+    if (
+      targetCat &&
+      targetSub &&
+      isProtectedSavingSubcategory(targetCat, targetSub)
+    ) {
+      notify('warning', 'Sub-kategori sistem "Saving" tidak dapat diubah');
+      return;
+    }
+
     commitDb((prev) => ({
       ...prev,
       categories: prev.categories.map((c) =>
@@ -484,6 +516,17 @@ export default function App() {
   };
 
   const handleDeleteSubcategory = (categoryId: string, subId: string) => {
+    const targetCat = dbRef.current.categories.find((c) => c.id === categoryId);
+    const targetSub = targetCat?.subcategories.find((s) => s.id === subId);
+    if (
+      targetCat &&
+      targetSub &&
+      isProtectedSavingSubcategory(targetCat, targetSub)
+    ) {
+      notify('warning', 'Sub-kategori sistem "Saving" tidak dapat dihapus');
+      return;
+    }
+
     commitDb((prev) => ({
       ...prev,
       categories: prev.categories.map((c) =>
@@ -691,6 +734,7 @@ export default function App() {
             weeklyDateRanges={db.weeklyDateRanges}
             currency={db.userProfile.currency}
             editingTransaction={editingTransaction}
+            isMobileLayout={isMobileLayout}
             onCancelEdit={() => {
               setEditingTransaction(null);
               setActiveTab('dashboard');
@@ -706,6 +750,7 @@ export default function App() {
           <AutoPlotTab
             categories={db.categories}
             weeklyDateRanges={db.weeklyDateRanges}
+            isMobileLayout={isMobileLayout}
             onSaveBulkTransactions={handleSaveBatchTransactions}
             onNotify={notify}
           />
@@ -718,6 +763,7 @@ export default function App() {
             weeklyBudgets={db.weeklyBudgets}
             weeklyDateRanges={db.weeklyDateRanges}
             currency={db.userProfile.currency}
+            isMobileLayout={isMobileLayout}
             onSaveBudgetsAndRanges={handleSaveBudgetsAndRanges}
           />
         );
@@ -726,6 +772,7 @@ export default function App() {
           <CategoriesTab
             categories={db.categories}
             gallery={db.gallery}
+            isMobileLayout={isMobileLayout}
             onAddCategory={handleAddCategory}
             onUpdateCategory={handleUpdateCategory}
             onRequestDeleteCategory={handleRequestDeleteCategory}
@@ -741,6 +788,7 @@ export default function App() {
           <GalleryTab
             gallery={db.gallery}
             categories={db.categories}
+            isMobileLayout={isMobileLayout}
             onAddGalleryItem={handleAddGalleryItem}
             onDeleteGalleryItem={handleDeleteGalleryItem}
             onLinkToCategory={handleLinkGalleryToCategory}
@@ -750,6 +798,7 @@ export default function App() {
         return (
           <DatabaseCenterTab
             db={db}
+            isMobileLayout={isMobileLayout}
             cloudUser={{
               uid: PRIMARY_WORKSPACE_UID,
               email: PRIMARY_USER_EMAIL,
@@ -829,7 +878,7 @@ export default function App() {
       ) : isMobileLayout ? (
         /* ================= MOBILE VIEW (Tactile Wallet Design) ================= */
         <div
-          className={`min-h-screen flex flex-col ${
+          className={`min-h-screen flex flex-col overflow-x-hidden ${
             !isNarrowScreen
               ? 'max-w-[430px] mx-auto my-6 rounded-[40px] border border-slate-200 bg-[#F8F9FA] shadow-2xl overflow-hidden relative min-h-[820px]'
               : ''
@@ -851,17 +900,17 @@ export default function App() {
           )}
 
           {/* Mobile Top Header (mirrors the reference image: Menu left, Title + Subtitle center, + button right) */}
-          <header className="sticky top-0 z-30 bg-[#F8F9FA]/90 backdrop-blur-md px-5 py-3.5 flex items-center justify-between">
+          <header className="sticky top-0 z-30 bg-[#F8F9FA]/90 backdrop-blur-md px-4 py-3 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
               aria-label="Buka menu navigasi"
-              className="w-11 h-11 rounded-full hover:bg-slate-200/70 flex items-center justify-center text-slate-900 transition-colors"
+              className="w-11 h-11 rounded-full hover:bg-slate-200/70 flex items-center justify-center text-slate-900 transition-colors shrink-0"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <div className="text-center min-w-0 px-2">
+            <div className="text-center min-w-0 flex-1 px-1">
               <h1 className="text-base font-bold text-slate-900 truncate">
                 {activeNavItem.label}
               </h1>
@@ -877,14 +926,14 @@ export default function App() {
                 setActiveTab('input');
               }}
               aria-label="Tambah transaksi baru"
-              className="w-11 h-11 rounded-full bg-slate-200/70 hover:bg-slate-300/70 flex items-center justify-center text-slate-900 transition-colors"
+              className="w-11 h-11 rounded-full bg-slate-200/70 hover:bg-slate-300/70 flex items-center justify-center text-slate-900 transition-colors shrink-0"
             >
               <Plus className="w-5 h-5" />
             </button>
           </header>
 
           {/* Mobile Scrollable Content */}
-          <main className="flex-1 px-4 pt-2 pb-28 overflow-y-auto">
+          <main className="flex-1 min-w-0 px-3.5 sm:px-4 pt-2 pb-28 overflow-y-auto overflow-x-hidden">
             {renderActiveTabContent()}
           </main>
 
@@ -895,7 +944,7 @@ export default function App() {
                 className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
                 onClick={() => setMobileDrawerOpen(false)}
               />
-              <aside className="relative z-10 w-72 max-w-[85vw] bg-white h-full p-5 flex flex-col justify-between shadow-2xl">
+              <aside className="relative z-10 w-72 max-w-[85vw] bg-white h-full p-5 flex flex-col justify-between gap-4 overflow-y-auto shadow-2xl">
                 <div className="space-y-5">
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-bold tracking-tight text-slate-900">
@@ -979,12 +1028,12 @@ export default function App() {
           {/* Floating Dark Pill Bottom Dock (directly styled after reference image) */}
           <div
             className={`${
-              isNarrowScreen ? 'fixed bottom-4 inset-x-4' : 'absolute bottom-4 inset-x-4'
+              isNarrowScreen ? 'fixed bottom-3 inset-x-3' : 'absolute bottom-4 inset-x-3'
             } z-40 flex justify-center pointer-events-none`}
           >
             <nav
               aria-label="Navigasi bawah"
-              className="pointer-events-auto flex items-center gap-1 rounded-full bg-[#1C1C1E]/95 backdrop-blur-md px-2 py-1.5 shadow-[0_12px_28px_-6px_rgba(0,0,0,0.4)] border border-white/10"
+              className="pointer-events-auto max-w-full overflow-x-auto flex items-center gap-0.5 sm:gap-1 rounded-full bg-[#1C1C1E]/95 backdrop-blur-md px-1.5 sm:px-2 py-1.5 shadow-[0_12px_28px_-6px_rgba(0,0,0,0.4)] border border-white/10"
             >
               {mobileDockTabs.map((item) => {
                 const Icon = item.icon;
@@ -994,7 +1043,7 @@ export default function App() {
                     key={item.key}
                     type="button"
                     onClick={() => navigateToTab(item.key)}
-                    className={`flex items-center gap-2 px-3.5 py-2.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
                       active
                         ? 'bg-[#3A3A3C] text-white shadow-xs'
                         : 'text-zinc-400 hover:text-white'
@@ -1010,7 +1059,7 @@ export default function App() {
                 type="button"
                 onClick={() => setProfileOpen(true)}
                 aria-label="Profil akun"
-                className="flex items-center justify-center w-10 h-10 rounded-full text-zinc-400 hover:text-white transition-colors"
+                className="flex items-center justify-center w-9 h-9 rounded-full text-zinc-400 hover:text-white transition-colors shrink-0"
               >
                 <User className="w-4 h-4" />
               </button>

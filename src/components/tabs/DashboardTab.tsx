@@ -1,12 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import {
-  CalendarDays,
   ChevronDown,
   ChevronRight,
-  Landmark,
   Pencil,
-  Plus,
-  Sparkles,
   Trash2,
   Wallet,
 } from 'lucide-react';
@@ -24,8 +20,10 @@ import {
   detectWeekFromDate,
   formatCurrency,
   formatMonthYearID,
+  formatNumberID,
   formatShortDateTime,
 } from '../../utils/formatters';
+import { PROTECTED_SAVING_SUBCATEGORY_ID } from '../../db/dummyDb';
 import { CategoryIcon } from '../CategoryIcon';
 import { LeatherWalletCard } from '../LeatherWalletCard';
 
@@ -71,9 +69,13 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     let savingIn = 0;
 
     for (const t of transactions) {
-      const isSaving =
+      const isSavingCat =
         t.categoryId === 'cat-saving' ||
-        t.categoryName.toLowerCase() === 'saving';
+        t.categoryName.trim().toLowerCase() === 'saving';
+      const isSavingSub =
+        t.subcategoryId === PROTECTED_SAVING_SUBCATEGORY_ID ||
+        (t.subcategoryName || '').trim().toLowerCase() === 'saving';
+      const isSaving = isSavingCat && isSavingSub;
       if (t.type === 'income') {
         totalIncome += t.amount;
         if (isSaving) savingIn += t.amount;
@@ -279,83 +281,32 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Hero Split: Tactile Leather Wallet + Summary Metrics & Quick Actions */}
-      <div
-        className={`grid gap-6 items-start ${
-          isMobileLayout ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-12'
-        }`}
-      >
-        {/* Left: Leather Wallet Card */}
-        <div className={isMobileLayout ? '' : 'lg:col-span-5'}>
-          {(() => {
-            const totalMonthlyPlusWeeklyBudget =
-              (weeklyBudgets['Week 1'] || 0) +
-              (weeklyBudgets['Week 2'] || 0) +
-              (weeklyBudgets['Week 3'] || 0) +
-              (weeklyBudgets['Week 4'] || 0) +
-              (weeklyBudgets.Monthly || 0);
-            return (
-              <LeatherWalletCard
-                balance={summary.currentBalance}
-                monthlyBudget={totalMonthlyPlusWeeklyBudget}
-                monthlySpending={summary.totalExpense}
-                monthlyRemaining={
-                  totalMonthlyPlusWeeklyBudget - summary.totalExpense
-                }
-                monthlySaving={summary.totalSaving}
-                runningWeekLabel={activeRunningWeek}
-                budget={activeRunningStat?.budget ?? 0}
-                remaining={activeRunningStat?.remaining ?? 0}
-                spending={activeRunningStat?.expense ?? 0}
-                profile={profile}
-              />
-            );
-          })()}
-        </div>
-
-        {/* Right: Quick Actions */}
-        <div className={`space-y-4 ${isMobileLayout ? '' : 'lg:col-span-7 lg:pt-8'}`}>
-          {/* Quick Actions */}
-          <div className="rounded-2xl bg-white border border-slate-100 p-4">
-            <p className="text-xs font-semibold text-slate-500 mb-3">
-              Aksi Cepat
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <button
-                type="button"
-                onClick={() => onNavigateTab('input')}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4 shrink-0" />
-                Catat Transaksi
-              </button>
-              <button
-                type="button"
-                onClick={onOpenMyBca}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0A3D91] text-xs font-semibold transition-colors whitespace-nowrap"
-              >
-                <Landmark className="w-4 h-4 shrink-0" />
-                Portal MyBCA
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigateTab('autoplot')}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors whitespace-nowrap"
-              >
-                <Sparkles className="w-4 h-4 shrink-0" />
-                Plotting AI
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigateTab('history')}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors whitespace-nowrap"
-              >
-                <CalendarDays className="w-4 h-4 shrink-0" />
-                Kalender
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Top Hero: Tactile Leather Wallet */}
+      <div className={isMobileLayout ? '' : 'max-w-[440px]'}>
+        {(() => {
+          const totalMonthlyPlusWeeklyBudget =
+            (weeklyBudgets['Week 1'] || 0) +
+            (weeklyBudgets['Week 2'] || 0) +
+            (weeklyBudgets['Week 3'] || 0) +
+            (weeklyBudgets['Week 4'] || 0) +
+            (weeklyBudgets.Monthly || 0);
+          return (
+            <LeatherWalletCard
+              balance={summary.currentBalance}
+              monthlyBudget={totalMonthlyPlusWeeklyBudget}
+              monthlySpending={summary.totalExpense}
+              monthlyRemaining={
+                totalMonthlyPlusWeeklyBudget - summary.totalExpense
+              }
+              monthlySaving={summary.totalSaving}
+              runningWeekLabel={activeRunningWeek}
+              budget={activeRunningStat?.budget ?? 0}
+              remaining={activeRunningStat?.remaining ?? 0}
+              spending={activeRunningStat?.expense ?? 0}
+              profile={profile}
+            />
+          );
+        })()}
       </div>
 
       {/* Transactions Section (Styled directly after the visual reference) */}
@@ -412,12 +363,12 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       return (
                         <div
                           key={trx.id}
-                          className="group flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-slate-50/70 transition-colors"
+                          className="group flex items-center justify-between gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-3 sm:py-3.5 hover:bg-slate-50/70 transition-colors"
                         >
                           <button
                             type="button"
                             onClick={() => onEditTransaction(trx)}
-                            className="flex items-center gap-3.5 min-w-0 flex-1 text-left"
+                            className="flex items-center gap-3 min-w-0 flex-1 text-left"
                           >
                             <CategoryIcon
                               category={cat}
@@ -435,10 +386,10 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                             </div>
                           </button>
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            <div className="text-right">
+                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                            <div className="text-right min-w-0">
                               <p
-                                className={`text-sm font-semibold tabular-nums ${
+                                className={`text-sm font-semibold tabular-nums whitespace-nowrap ${
                                   trx.type === 'expense'
                                     ? 'text-[#D9463E]'
                                     : 'text-slate-900'
@@ -449,7 +400,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                                   type: trx.type,
                                 })}
                               </p>
-                              <p className="text-[11px] text-slate-400 truncate max-w-[130px]">
+                              <p className="text-[11px] text-slate-400 truncate max-w-[100px] sm:max-w-[130px] ml-auto">
                                 {trx.categoryName}
                                 {trx.subcategoryName
                                   ? ` / ${trx.subcategoryName}`
@@ -457,13 +408,15 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                               </p>
                             </div>
 
-                            <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-0.5 sm:gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                               <button
                                 type="button"
                                 onClick={() => onEditTransaction(trx)}
                                 aria-label="Edit transaksi"
                                 title="Edit transaksi"
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100"
+                                className={`${
+                                  isMobileLayout ? 'hidden' : 'hidden sm:inline-flex'
+                                } p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100`}
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
@@ -472,7 +425,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                                 onClick={() => onDeleteTransaction(trx)}
                                 aria-label="Hapus transaksi"
                                 title="Hapus transaksi"
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                className="p-2 sm:p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -491,9 +444,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         {/* Right: Weekly Budget Status & Charts */}
         <div className={`space-y-5 ${isMobileLayout ? '' : 'lg:col-span-5'}`}>
           {/* Weekly Cashflow Visual Bar Chart */}
-          <div className="rounded-3xl bg-white border border-slate-100 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
+          <div className="rounded-3xl bg-white border border-slate-100 px-3.5 py-4 sm:p-5 overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <div className="min-w-0">
                 <h3 className="text-sm font-bold text-slate-900">
                   Arus Kas Mingguan
                 </h3>
@@ -501,19 +454,19 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                   Perbandingan budget &amp; pengeluaran W1–W4
                 </p>
               </div>
-              <div className="flex items-center gap-3 text-[11px] text-slate-500">
+              <div className="flex items-center gap-3 text-[11px] text-slate-500 shrink-0">
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-slate-900 inline-block" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-900 inline-block" />
                   Budget
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-[#D9463E] inline-block" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#D9463E] inline-block" />
                   Keluar
                 </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 pt-1">
+            <div className="grid grid-cols-4 gap-1 sm:gap-2 pt-1">
               {weeklyStats.map((w) => {
                 const budgetHeight =
                   w.budget > 0
@@ -536,7 +489,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       )
                     }
                     aria-pressed={isSelected}
-                    className={`flex flex-col items-center rounded-2xl px-1.5 py-2.5 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                    className={`min-w-0 flex flex-col items-center rounded-2xl px-0.5 sm:px-1.5 py-2 sm:py-2.5 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
                       isSelected
                         ? 'bg-slate-100 ring-2 ring-slate-900 shadow-xs'
                         : hasSelection
@@ -554,20 +507,26 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                           : 'text-slate-600'
                       }`}
                     >
-                      {w.rawPct}%
+                      {formatNumberID(w.rawPct)}%
                     </span>
 
                     {/* Overlapping Thick Rounded Bars */}
                     <div className="h-32 w-full flex items-end justify-center pb-2.5 border-b border-slate-200/70">
                       <div
-                        className={`relative z-0 w-12 sm:w-14 rounded-full transition-all ${
+                        className={`relative z-0 ${
+                          isMobileLayout ? 'w-10' : 'w-10 sm:w-14'
+                        } rounded-full transition-all ${
                           w.budget > 0 ? 'bg-slate-900' : 'bg-slate-200'
                         }`}
                         style={{ height: `${budgetHeight}px` }}
                         title={`Budget: ${formatCurrency(w.budget, profile.currency)}`}
                       />
                       <div
-                        className={`relative z-10 -ml-6 w-12 sm:w-14 rounded-full ring-2 ${
+                        className={`relative z-10 ${
+                          isMobileLayout
+                            ? '-ml-5 w-10'
+                            : '-ml-5 sm:-ml-7 w-10 sm:w-14'
+                        } rounded-full ring-2 ${
                           isSelected ? 'ring-slate-100' : 'ring-white'
                         } transition-all ${
                           w.expense > 0 ? 'bg-[#D9463E]' : 'bg-rose-100'
@@ -586,7 +545,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       {w.week.replace('Week ', 'W')}
                     </span>
                     <span
-                      className={`text-[10px] tabular-nums whitespace-nowrap ${
+                      className={`max-w-full truncate text-[10px] tabular-nums ${
                         w.remaining < 0
                           ? 'text-[#D9463E] font-semibold'
                           : 'text-slate-500'
@@ -654,7 +613,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           </div>
 
           {/* Budget Status Breakdown by Week/Monthly & Category/Subcategory */}
-          <div className="rounded-2xl bg-white border border-slate-100 p-5">
+          <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 overflow-hidden">
             <div className="flex items-center justify-between gap-2 mb-3">
               <h3 className="text-sm font-bold text-slate-900">
                 Status Anggaran
@@ -688,9 +647,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             </div>
 
             <div className="mt-4">
-              <div className="flex items-baseline justify-between">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
                 <span className="text-xs text-slate-500">
-                  Terpakai ({selectedBudgetBreakdown.pct}%)
+                  Terpakai ({formatNumberID(selectedBudgetBreakdown.pct)}%)
                 </span>
                 <span className="text-xs font-mono tabular-nums text-slate-700">
                   {formatCurrency(
@@ -737,10 +696,13 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               </p>
             </div>
 
-            {/* Category, Subcategory & Per-Week Breakdown */}
-            <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
-              {/* Per-Week Spending Charts & Numbers Summary (W1-W4) */}
-              <div className="grid grid-cols-4 gap-2 pb-3 border-b border-slate-100">
+            {/* Per-Week Spending Charts & Numbers Summary (W1-W4) */}
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <div
+                className={`grid gap-2 ${
+                  isMobileLayout ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
+                }`}
+              >
                 {weeklyStats.map((w) => {
                   const isActiveWk = selectedBudgetWeek === w.week;
                   return (
@@ -752,7 +714,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                           isActiveWk ? 'Monthly' : w.week
                         )
                       }
-                      className={`text-left rounded-xl px-2 py-2 transition-colors ${
+                      className={`min-w-0 text-left rounded-xl px-2.5 py-2 transition-colors ${
                         isActiveWk
                           ? 'bg-slate-900 text-white'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-900'
@@ -777,7 +739,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                               : 'text-slate-400'
                           }`}
                         >
-                          {w.rawPct}%
+                          {formatNumberID(w.rawPct)}%
                         </span>
                       </div>
                       <p className="mt-0.5 text-xs font-mono font-bold tabular-nums truncate">
@@ -816,262 +778,284 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                   );
                 })}
               </div>
+            </div>
+          </div>
 
-              {selectedBudgetBreakdown.breakdown.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-3">
-                  Belum ada pengeluaran di periode {selectedBudgetWeek}.
+          {/* Separate Card: Rincian Kategori & Sub-Kategori */}
+          <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 overflow-hidden space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Rincian Kategori &amp; Sub-Kategori
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Periode:{' '}
+                  {selectedBudgetWeek === 'Monthly'
+                    ? 'Bulanan'
+                    : selectedBudgetWeek}
                 </p>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between text-[11px] text-slate-500">
-                    <span className="font-semibold text-slate-600">
-                      Rincian Kategori &amp; Sub-Kategori
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const allOpen =
-                          selectedBudgetBreakdown.breakdown.every(
-                            (c) => expandedCategories[c.categoryId] ?? false
-                          );
-                        const next: Record<string, boolean> = {};
-                        for (const c of selectedBudgetBreakdown.breakdown) {
-                          next[c.categoryId] = !allOpen;
-                        }
-                        setExpandedCategories(next);
-                      }}
-                      className="font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-                    >
-                      {selectedBudgetBreakdown.breakdown.every(
+              </div>
+              {selectedBudgetBreakdown.breakdown.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allOpen =
+                      selectedBudgetBreakdown.breakdown.every(
                         (c) => expandedCategories[c.categoryId] ?? false
-                      )
-                        ? 'Tutup Semua'
-                        : 'Buka Semua'}
-                    </button>
-                  </div>
-
-                  <div className="divide-y divide-slate-100">
-                    {selectedBudgetBreakdown.breakdown.map((item) => {
-                      const pctOfSpent =
-                        selectedBudgetBreakdown.totalSpent > 0
-                          ? Math.round(
-                              (item.total / selectedBudgetBreakdown.totalSpent) *
-                                100
-                            )
-                          : 0;
-                      const maxCatWeekVal = Math.max(
-                        1,
-                        item.weekTotals['Week 1'],
-                        item.weekTotals['Week 2'],
-                        item.weekTotals['Week 3'],
-                        item.weekTotals['Week 4']
                       );
-                      const isExpanded =
-                        expandedCategories[item.categoryId] ?? false;
+                    const next: Record<string, boolean> = {};
+                    for (const c of selectedBudgetBreakdown.breakdown) {
+                      next[c.categoryId] = !allOpen;
+                    }
+                    setExpandedCategories(next);
+                  }}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors shrink-0"
+                >
+                  {selectedBudgetBreakdown.breakdown.every(
+                    (c) => expandedCategories[c.categoryId] ?? false
+                  )
+                    ? 'Tutup Semua'
+                    : 'Buka Semua'}
+                </button>
+              )}
+            </div>
 
-                      return (
+            {selectedBudgetBreakdown.breakdown.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-4">
+                Belum ada pengeluaran di periode {selectedBudgetWeek}.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {selectedBudgetBreakdown.breakdown.map((item) => {
+                  const pctOfSpent =
+                    selectedBudgetBreakdown.totalSpent > 0
+                      ? Math.round(
+                          (item.total / selectedBudgetBreakdown.totalSpent) * 100
+                        )
+                      : 0;
+                  const maxCatWeekVal = Math.max(
+                    1,
+                    item.weekTotals['Week 1'],
+                    item.weekTotals['Week 2'],
+                    item.weekTotals['Week 3'],
+                    item.weekTotals['Week 4']
+                  );
+                  const isExpanded =
+                    expandedCategories[item.categoryId] ?? false;
+
+                  return (
+                    <div
+                      key={item.categoryId}
+                      className="rounded-xl border border-slate-100 bg-slate-50/50 p-3 space-y-2.5"
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedCategories((prev) => ({
+                            ...prev,
+                            [item.categoryId]: !(
+                              prev[item.categoryId] ?? false
+                            ),
+                          }))
+                        }
+                        aria-expanded={isExpanded}
+                        className="w-full flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs rounded-lg py-0.5 hover:bg-white/70 transition-colors text-left"
+                      >
+                        <span className="inline-flex items-center gap-1.5 min-w-0">
+                          {isExpanded ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          )}
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="font-semibold text-slate-800 truncate">
+                            {item.categoryName}
+                          </span>
+                          <span className="text-[10px] text-slate-400 shrink-0 tabular-nums">
+                            ({formatNumberID(item.subList.length)} sub)
+                          </span>
+                        </span>
+                        <span className="font-mono tabular-nums text-slate-700 shrink-0 ml-auto">
+                          {formatCurrency(item.total, profile.currency)} ·{' '}
+                          {formatNumberID(pctOfSpent)}%
+                        </span>
+                      </button>
+
+                      {/* Per-Week Chart Bars (W1-W4) for this Category */}
+                      <div
+                        className={`grid gap-2 ${
+                          isMobileLayout
+                            ? 'grid-cols-2'
+                            : 'grid-cols-2 sm:grid-cols-4'
+                        }`}
+                      >
+                        {(
+                          ['Week 1', 'Week 2', 'Week 3', 'Week 4'] as const
+                        ).map((wk) => {
+                          const val = item.weekTotals[wk];
+                          const barWidth =
+                            val > 0
+                              ? Math.max(
+                                  16,
+                                  Math.round((val / maxCatWeekVal) * 100)
+                                )
+                              : 0;
+                          const isDimmed =
+                            selectedBudgetWeek !== 'Monthly' &&
+                            selectedBudgetWeek !== wk;
+                          return (
+                            <div
+                              key={wk}
+                              className={`min-w-0 space-y-1 transition-opacity ${
+                                isDimmed ? 'opacity-40' : ''
+                              }`}
+                            >
+                              <div className="h-2 w-full rounded-full bg-slate-200/70 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{
+                                    width: `${barWidth}%`,
+                                    backgroundColor: item.color,
+                                  }}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between gap-1 text-[10px] font-mono tabular-nums text-slate-500">
+                                <span>{wk.replace('Week ', 'W')}</span>
+                                <strong className="font-semibold text-slate-700 truncate">
+                                  {formatCurrency(val, profile.currency, {
+                                    compact: true,
+                                  })}
+                                </strong>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Collapsible Sub-Category Detail List (separated into individual cards) */}
+                      {isExpanded && item.subList.length > 0 && (
                         <div
-                          key={item.categoryId}
-                          className="space-y-1.5 py-3 first:pt-1 last:pb-0"
+                          className="pt-1.5 pl-2.5 border-l-2 space-y-2"
+                          style={{ borderColor: `${item.color}45` }}
                         >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedCategories((prev) => ({
-                              ...prev,
-                              [item.categoryId]: !(
-                                prev[item.categoryId] ?? false
-                              ),
-                            }))
-                          }
-                          aria-expanded={isExpanded}
-                          className="w-full flex items-center justify-between gap-2 text-xs rounded-lg py-1 -mx-1 px-1 hover:bg-slate-50 transition-colors text-left"
-                        >
-                          <span className="inline-flex items-center gap-1.5 min-w-0">
-                            {isExpanded ? (
-                              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            ) : (
-                              <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            )}
-                            <span
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: item.color }}
-                            />
-                            <span className="font-semibold text-slate-800 truncate">
-                              {item.categoryName}
-                            </span>
-                            <span className="text-[10px] text-slate-400 shrink-0 tabular-nums">
-                              ({item.subList.length} sub)
-                            </span>
-                          </span>
-                          <span className="font-mono tabular-nums text-slate-700 shrink-0">
-                            {formatCurrency(item.total, profile.currency)} ·{' '}
-                            {pctOfSpent}%
-                          </span>
-                        </button>
-
-                        {/* Per-Week Chart Bars (W1-W4) for this Category */}
-                        <div className="grid grid-cols-4 gap-2 pt-0.5">
-                          {(
-                            ['Week 1', 'Week 2', 'Week 3', 'Week 4'] as const
-                          ).map((wk) => {
-                            const val = item.weekTotals[wk];
-                            const barWidth =
-                              val > 0
-                                ? Math.max(
-                                    16,
-                                    Math.round((val / maxCatWeekVal) * 100)
-                                  )
+                          {item.subList.map((sub) => {
+                            const subPctOfCat =
+                              item.total > 0
+                                ? Math.round((sub.total / item.total) * 100)
                                 : 0;
-                            const isDimmed =
-                              selectedBudgetWeek !== 'Monthly' &&
-                              selectedBudgetWeek !== wk;
+                            const maxSubWeekVal = Math.max(
+                              1,
+                              sub.weekTotals['Week 1'],
+                              sub.weekTotals['Week 2'],
+                              sub.weekTotals['Week 3'],
+                              sub.weekTotals['Week 4']
+                            );
                             return (
                               <div
-                                key={wk}
-                                className={`space-y-1 transition-opacity ${
-                                  isDimmed ? 'opacity-40' : ''
-                                }`}
+                                key={sub.name}
+                                className="rounded-xl bg-white border border-slate-100 px-3 py-2.5 space-y-1.5 shadow-2xs"
                               >
-                                <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                                  <div
-                                    className="h-full rounded-full transition-all"
-                                    style={{
-                                      width: `${barWidth}%`,
-                                      backgroundColor: item.color,
-                                    }}
-                                  />
+                                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px]">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="font-semibold text-slate-700 truncate">
+                                      {sub.name}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 shrink-0 tabular-nums">
+                                      ({formatNumberID(sub.count)} trx)
+                                    </span>
+                                  </div>
+                                  <span className="font-mono tabular-nums text-slate-700 shrink-0 ml-auto">
+                                    <strong className="font-semibold text-slate-900">
+                                      {formatCurrency(
+                                        sub.total,
+                                        profile.currency
+                                      )}
+                                    </strong>{' '}
+                                    · {formatNumberID(subPctOfCat)}%
+                                  </span>
                                 </div>
-                                <div className="flex items-center justify-between gap-1 text-[10px] font-mono tabular-nums text-slate-500">
-                                  <span>{wk.replace('Week ', 'W')}</span>
-                                  <strong className="font-semibold text-slate-700 truncate">
-                                    {formatCurrency(val, profile.currency, {
-                                      compact: true,
-                                    })}
-                                  </strong>
+
+                                {/* Per-Week Mini Chart Bars (W1-W4) for Sub-Category */}
+                                <div
+                                  className={`grid gap-2 pt-0.5 ${
+                                    isMobileLayout
+                                      ? 'grid-cols-2'
+                                      : 'grid-cols-2 sm:grid-cols-4'
+                                  }`}
+                                >
+                                  {(
+                                    [
+                                      'Week 1',
+                                      'Week 2',
+                                      'Week 3',
+                                      'Week 4',
+                                    ] as const
+                                  ).map((wk) => {
+                                    const subWkVal = sub.weekTotals[wk];
+                                    const subBarWidth =
+                                      subWkVal > 0
+                                        ? Math.max(
+                                            14,
+                                            Math.round(
+                                              (subWkVal / maxSubWeekVal) * 100
+                                            )
+                                          )
+                                        : 0;
+                                    const isSubWkDimmed =
+                                      selectedBudgetWeek !== 'Monthly' &&
+                                      selectedBudgetWeek !== wk;
+                                    return (
+                                      <div
+                                        key={wk}
+                                        className={`space-y-1 transition-opacity ${
+                                          isSubWkDimmed ? 'opacity-40' : ''
+                                        }`}
+                                      >
+                                        <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                                          <div
+                                            className="h-full rounded-full transition-all"
+                                            style={{
+                                              width: `${subBarWidth}%`,
+                                              backgroundColor: item.color,
+                                              opacity: 0.8,
+                                            }}
+                                          />
+                                        </div>
+                                        <div className="flex items-center justify-between gap-1 text-[10px] font-mono tabular-nums">
+                                          <span className="text-slate-400">
+                                            {wk.replace('Week ', 'W')}
+                                          </span>
+                                          <span
+                                            className={
+                                              subWkVal > 0
+                                                ? 'font-semibold text-slate-700 truncate'
+                                                : 'text-slate-300'
+                                            }
+                                          >
+                                            {formatCurrency(
+                                              subWkVal,
+                                              profile.currency,
+                                              { compact: true }
+                                            )}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             );
                           })}
                         </div>
-
-                        {/* Collapsible Sub-Category Detail List with Per-Week Charts */}
-                        {isExpanded && item.subList.length > 0 && (
-                          <div
-                            className="mt-2 pl-2.5 border-l-2 space-y-2"
-                            style={{ borderColor: `${item.color}40` }}
-                          >
-                            {item.subList.map((sub) => {
-                              const subPctOfCat =
-                                item.total > 0
-                                  ? Math.round((sub.total / item.total) * 100)
-                                  : 0;
-                              const maxSubWeekVal = Math.max(
-                                1,
-                                sub.weekTotals['Week 1'],
-                                sub.weekTotals['Week 2'],
-                                sub.weekTotals['Week 3'],
-                                sub.weekTotals['Week 4']
-                              );
-                              return (
-                                <div
-                                  key={sub.name}
-                                  className="rounded-xl bg-slate-50/80 px-2.5 py-2 space-y-1.5"
-                                >
-                                  <div className="flex items-center justify-between gap-2 text-[11px]">
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                      <span className="font-semibold text-slate-700 truncate">
-                                        {sub.name}
-                                      </span>
-                                      <span className="text-[10px] text-slate-400 shrink-0 tabular-nums">
-                                        ({sub.count} trx)
-                                      </span>
-                                    </div>
-                                    <span className="font-mono tabular-nums text-slate-700 shrink-0">
-                                      <strong className="font-semibold text-slate-900">
-                                        {formatCurrency(
-                                          sub.total,
-                                          profile.currency
-                                        )}
-                                      </strong>{' '}
-                                      · {subPctOfCat}%
-                                    </span>
-                                  </div>
-
-                                  {/* Per-Week Mini Chart Bars (W1-W4) for Sub-Category */}
-                                  <div className="grid grid-cols-4 gap-2 pt-0.5">
-                                    {(
-                                      [
-                                        'Week 1',
-                                        'Week 2',
-                                        'Week 3',
-                                        'Week 4',
-                                      ] as const
-                                    ).map((wk) => {
-                                      const subWkVal = sub.weekTotals[wk];
-                                      const subBarWidth =
-                                        subWkVal > 0
-                                          ? Math.max(
-                                              14,
-                                              Math.round(
-                                                (subWkVal / maxSubWeekVal) * 100
-                                              )
-                                            )
-                                          : 0;
-                                      const isSubWkDimmed =
-                                        selectedBudgetWeek !== 'Monthly' &&
-                                        selectedBudgetWeek !== wk;
-                                      return (
-                                        <div
-                                          key={wk}
-                                          className={`space-y-1 transition-opacity ${
-                                            isSubWkDimmed ? 'opacity-40' : ''
-                                          }`}
-                                        >
-                                          <div className="h-1.5 w-full rounded-full bg-slate-200/80 overflow-hidden">
-                                            <div
-                                              className="h-full rounded-full transition-all"
-                                              style={{
-                                                width: `${subBarWidth}%`,
-                                                backgroundColor: item.color,
-                                                opacity: 0.8,
-                                              }}
-                                            />
-                                          </div>
-                                          <div className="flex items-center justify-between gap-1 text-[10px] font-mono tabular-nums">
-                                            <span className="text-slate-400">
-                                              {wk.replace('Week ', 'W')}
-                                            </span>
-                                            <span
-                                              className={
-                                                subWkVal > 0
-                                                  ? 'font-semibold text-slate-700 truncate'
-                                                  : 'text-slate-300'
-                                              }
-                                            >
-                                              {formatCurrency(
-                                                subWkVal,
-                                                profile.currency,
-                                                { compact: true }
-                                              )}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

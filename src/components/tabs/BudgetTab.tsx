@@ -7,7 +7,8 @@ import {
   WeeklyBudgets,
   WeeklyDateRanges,
 } from '../../types/finance';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatNumberID } from '../../utils/formatters';
+import { ThousandInput } from '../ThousandInput';
 
 interface BudgetTabProps {
   transactions: Transaction[];
@@ -15,6 +16,7 @@ interface BudgetTabProps {
   weeklyBudgets: WeeklyBudgets;
   weeklyDateRanges: WeeklyDateRanges;
   currency: 'IDR' | 'USD';
+  isMobileLayout?: boolean;
   onSaveBudgetsAndRanges: (
     budgets: WeeklyBudgets,
     ranges: WeeklyDateRanges
@@ -27,6 +29,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
   weeklyBudgets,
   weeklyDateRanges,
   currency,
+  isMobileLayout = false,
   onSaveBudgetsAndRanges,
 }) => {
   const [draftBudgets, setDraftBudgets] =
@@ -119,28 +122,40 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div
+        className={`grid gap-3 ${
+          isMobileLayout
+            ? 'grid-cols-2'
+            : 'grid-cols-2 lg:grid-cols-5'
+        }`}
+      >
         {weekSummaries.map((item) => (
           <div
             key={item.wk}
-            className="rounded-2xl bg-white border border-slate-100 p-4"
+            className={`min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4 ${
+              item.wk === 'Monthly'
+                ? isMobileLayout
+                  ? 'col-span-2'
+                  : 'col-span-2 lg:col-span-1'
+                : ''
+            }`}
           >
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-900">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="font-bold text-slate-900 truncate">
                 {item.wk === 'Monthly' ? 'Bulanan' : item.wk}
               </span>
               <span
-                className={`font-mono font-semibold tabular-nums ${
+                className={`font-mono font-semibold tabular-nums shrink-0 ${
                   item.pct > 100 ? 'text-red-600' : 'text-slate-500'
                 }`}
               >
-                {item.pct}%
+                {formatNumberID(item.pct)}%
               </span>
             </div>
-            <p className="mt-2 text-sm font-bold text-slate-900 tabular-nums">
+            <p className="mt-2 text-sm font-bold text-slate-900 tabular-nums truncate">
               {formatCurrency(item.spent, currency)}
             </p>
-            <p className="text-[11px] text-slate-400 tabular-nums">
+            <p className="text-[11px] text-slate-400 tabular-nums truncate">
               dari {formatCurrency(item.limit, currency)}
             </p>
             <div className="mt-2.5 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
@@ -156,7 +171,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
               />
             </div>
             <p
-              className={`mt-2 text-[11px] tabular-nums ${
+              className={`mt-2 text-[11px] tabular-nums truncate ${
                 item.remaining < 0 ? 'text-red-600 font-medium' : 'text-slate-500'
               }`}
             >
@@ -175,25 +190,33 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
       {/* Form: Uniform + Per-Week Caps + Date Ranges */}
       <form
         onSubmit={handleSaveAll}
-        className="rounded-2xl bg-white border border-slate-100 p-5 space-y-6"
+        className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-6"
       >
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-slate-100">
-          <div className="flex-1 max-w-sm">
+        <div
+          className={`flex justify-between gap-4 pb-5 border-b border-slate-100 ${
+            isMobileLayout ? 'flex-col' : 'flex-col sm:flex-row sm:items-end'
+          }`}
+        >
+          <div className="flex-1 min-w-0 max-w-sm">
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
               Atur Nominal Seragam ke Seluruh Minggu (W1–W4)
             </label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                min={0}
+            <div
+              className={`flex gap-2 ${
+                isMobileLayout ? 'flex-col' : 'flex-col sm:flex-row'
+              }`}
+            >
+              <ThousandInput
+                allowZero
                 value={uniformAmount}
-                onChange={(e) => setUniformAmount(e.target.value)}
-                className="flex-1 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-mono tabular-nums"
+                onValueChange={(raw) => setUniformAmount(raw)}
+                ariaLabel="Nominal anggaran seragam"
+                className="w-full min-w-0 flex-1 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-mono tabular-nums"
               />
               <button
                 type="button"
                 onClick={handleApplyUniform}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold whitespace-nowrap shrink-0"
               >
                 <CopyCheck className="w-3.5 h-3.5" />
                 Terapkan Seragam
@@ -215,34 +238,42 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
             (wk) => (
               <div
                 key={wk}
-                className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-3.5 rounded-xl bg-slate-50 border border-slate-100"
+                className={`grid gap-3 items-center p-3.5 rounded-xl bg-slate-50 border border-slate-100 ${
+                  isMobileLayout
+                    ? 'grid-cols-1'
+                    : 'grid-cols-1 md:grid-cols-12'
+                }`}
               >
-                <div className="md:col-span-2 flex items-center gap-2">
+                <div
+                  className={`${
+                    isMobileLayout ? '' : 'md:col-span-2'
+                  } flex items-center gap-2`}
+                >
                   <Wallet className="w-4 h-4 text-slate-500" />
                   <span className="text-sm font-bold text-slate-900">
                     {wk === 'Monthly' ? 'Monthly (Bulanan)' : wk}
                   </span>
                 </div>
 
-                <div className="md:col-span-4">
+                <div className={isMobileLayout ? '' : 'md:col-span-4'}>
                   <label className="block text-[11px] text-slate-500 mb-1">
                     Batas Anggaran (IDR)
                   </label>
-                  <input
-                    type="number"
-                    min={0}
+                  <ThousandInput
+                    allowZero
                     value={draftBudgets[wk]}
-                    onChange={(e) =>
+                    onValueChange={(_, numeric) =>
                       setDraftBudgets({
                         ...draftBudgets,
-                        [wk]: Number(e.target.value) || 0,
+                        [wk]: Math.max(0, numeric),
                       })
                     }
+                    ariaLabel={`Batas anggaran ${wk}`}
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-mono tabular-nums"
                   />
                 </div>
 
-                <div className="md:col-span-3">
+                <div className={isMobileLayout ? '' : 'md:col-span-3'}>
                   <label className="block text-[11px] text-slate-500 mb-1">
                     Tanggal Mulai
                   </label>
@@ -262,7 +293,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
                   />
                 </div>
 
-                <div className="md:col-span-3">
+                <div className={isMobileLayout ? '' : 'md:col-span-3'}>
                   <label className="block text-[11px] text-slate-500 mb-1">
                     Tanggal Selesai
                   </label>
@@ -288,22 +319,22 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
       </form>
 
       {/* Per-Category Weekly Realization */}
-      <div className="rounded-2xl bg-white border border-slate-100 p-5 space-y-4">
+      <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <CalendarDays className="w-4 h-4 text-slate-700" />
+            <CalendarDays className="w-4 h-4 text-slate-700 shrink-0" />
             <h3 className="text-sm font-bold text-slate-900">
               Realisasi Pengeluaran per Kategori
             </h3>
           </div>
 
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
+          <div className="max-w-full flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto">
             {(['Week 1', 'Week 2', 'Week 3', 'Week 4'] as const).map((wk) => (
               <button
                 key={wk}
                 type="button"
                 onClick={() => setInspectWeek(wk)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                   inspectWeek === wk
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
@@ -323,12 +354,13 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
           <div className="space-y-3">
             {categoryRealization.map((row) => (
               <div key={row.catId} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-800">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="font-semibold text-slate-800 truncate min-w-0">
                     {row.name}
                   </span>
-                  <span className="font-mono tabular-nums text-slate-700">
-                    {formatCurrency(row.amount, currency)} · {row.share}%
+                  <span className="font-mono tabular-nums text-slate-700 shrink-0">
+                    {formatCurrency(row.amount, currency)} ·{' '}
+                    {formatNumberID(row.share)}%
                   </span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">

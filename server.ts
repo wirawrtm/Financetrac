@@ -74,7 +74,7 @@ async function startServer() {
       const categoryCatalog = safeCategories.map((c) => ({
         id: c.id,
         name: c.name,
-        type: c.type,
+        type: 'both',
         subcategories: c.subcategories.map((s) => ({ id: s.id, name: s.name })),
       }));
 

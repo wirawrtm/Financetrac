@@ -26,17 +26,17 @@ export const MyBcaPortalModal: React.FC<MyBcaPortalModalProps> = ({
       aria-modal="true"
       aria-labelledby="mybca-portal-title"
     >
-      <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-[#0A3D91] to-[#1254C2] px-6 py-5 text-white flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+      <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="bg-gradient-to-r from-[#0A3D91] to-[#1254C2] px-4 sm:px-6 py-4 sm:py-5 text-white flex items-start justify-between shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
               <Landmark className="w-5 h-5" />
             </div>
-            <div>
-              <h3 id="mybca-portal-title" className="text-base font-semibold">
+            <div className="min-w-0">
+              <h3 id="mybca-portal-title" className="text-base font-semibold truncate">
                 Portal MyBCA & Mutasi
               </h3>
-              <p className="text-xs text-blue-100">
+              <p className="text-xs text-blue-100 truncate">
                 Akses cepat rekening & sinkronisasi mutasi
               </p>
             </div>
@@ -45,13 +45,13 @@ export const MyBcaPortalModal: React.FC<MyBcaPortalModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Tutup portal"
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-xs text-slate-500">Rekening Terhubung</p>
             <p className="mt-1 text-sm font-semibold text-slate-900">

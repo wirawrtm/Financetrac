@@ -3,6 +3,7 @@ import {
   CustomCalendarPeriod,
   DriveImageItem,
   DummyDatabase,
+  Subcategory,
   Transaction,
   UserProfile,
   WeeklyBudgets,
@@ -10,12 +11,70 @@ import {
 } from '../types/finance';
 
 export const LEGACY_DB_STORAGE_KEY = 'dompet_saku_dummy_db_v1';
+export const PROTECTED_SAVING_SUBCATEGORY_ID = 'sub-sav-saving';
+
+export function isProtectedSavingSubcategory(
+  cat: Pick<Category, 'id' | 'name'>,
+  sub: Pick<Subcategory, 'id' | 'name'>
+): boolean {
+  const isSavingCat =
+    cat.id === 'cat-saving' || cat.name.trim().toLowerCase() === 'saving';
+  if (!isSavingCat) return false;
+  return (
+    sub.id === PROTECTED_SAVING_SUBCATEGORY_ID ||
+    sub.name.trim().toLowerCase() === 'saving'
+  );
+}
+
+export function ensureProtectedSavingSubcategory(categories: Category[]): {
+  categories: Category[];
+  changed: boolean;
+} {
+  let changed = false;
+  const next = categories.map((cat) => {
+    const isSavingCat =
+      cat.id === 'cat-saving' || cat.name.trim().toLowerCase() === 'saving';
+    if (!isSavingCat) return cat;
+
+    const existingIdx = cat.subcategories.findIndex(
+      (s) =>
+        s.id === PROTECTED_SAVING_SUBCATEGORY_ID ||
+        s.name.trim().toLowerCase() === 'saving'
+    );
+
+    if (existingIdx === -1) {
+      changed = true;
+      return {
+        ...cat,
+        subcategories: [
+          { id: PROTECTED_SAVING_SUBCATEGORY_ID, name: 'Saving' },
+          ...cat.subcategories,
+        ],
+      };
+    }
+
+    const existing = cat.subcategories[existingIdx];
+    if (existing.name !== 'Saving') {
+      changed = true;
+      return {
+        ...cat,
+        subcategories: cat.subcategories.map((s, idx) =>
+          idx === existingIdx ? { ...s, name: 'Saving' } : s
+        ),
+      };
+    }
+
+    return cat;
+  });
+
+  return { categories: next, changed };
+}
 
 export const DEFAULT_CATEGORIES: Category[] = [
   {
     id: 'cat-food',
     name: 'Makanan & Belanja',
-    type: 'expense',
+    type: 'both',
     color: '#D97706',
     icon: 'Utensils',
     subcategories: [
@@ -28,7 +87,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   {
     id: 'cat-transport',
     name: 'Transportasi',
-    type: 'expense',
+    type: 'both',
     color: '#2563EB',
     icon: 'Car',
     subcategories: [
@@ -40,7 +99,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   {
     id: 'cat-bills',
     name: 'Tagihan & Utilitas',
-    type: 'expense',
+    type: 'both',
     color: '#7C3AED',
     icon: 'Zap',
     subcategories: [
@@ -52,7 +111,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   {
     id: 'cat-entertainment',
     name: 'Hiburan',
-    type: 'expense',
+    type: 'both',
     color: '#DB2777',
     icon: 'Film',
     subcategories: [
@@ -64,7 +123,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   {
     id: 'cat-shopping',
     name: 'Belanja Pribadi',
-    type: 'expense',
+    type: 'both',
     color: '#0D9488',
     icon: 'ShoppingBag',
     subcategories: [
@@ -76,7 +135,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   {
     id: 'cat-income',
     name: 'Gaji & Pendapatan',
-    type: 'income',
+    type: 'both',
     color: '#16A34A',
     icon: 'Briefcase',
     subcategories: [
@@ -93,6 +152,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
     icon: 'PiggyBank',
     isSystem: true,
     subcategories: [
+      { id: PROTECTED_SAVING_SUBCATEGORY_ID, name: 'Saving' },
       { id: 'sub-sav-emergency', name: 'Dana Darurat' },
       { id: 'sub-sav-invest', name: 'Investasi' },
       { id: 'sub-sav-dividend', name: 'Bunga & Dividen' },
@@ -223,18 +283,19 @@ export function validateImportedDatabase(rawText: string): DummyDatabase {
     );
   }
 
-  const categories = [...parsed.categories];
-  if (!categories.some((c) => c.name.toLowerCase() === 'saving')) {
-    categories.push({
+  const rawCategories = [...parsed.categories];
+  if (!rawCategories.some((c) => c.name.toLowerCase() === 'saving')) {
+    rawCategories.push({
       id: 'cat-saving',
       name: 'Saving',
       type: 'both',
       color: '#0F766E',
       icon: 'PiggyBank',
       isSystem: true,
-      subcategories: [],
+      subcategories: [{ id: PROTECTED_SAVING_SUBCATEGORY_ID, name: 'Saving' }],
     });
   }
+  const { categories } = ensureProtectedSavingSubcategory(rawCategories);
 
   const { weeklyDateRanges, customCalendarPeriod } = buildCurrentMonthRanges();
 

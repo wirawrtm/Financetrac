@@ -19,12 +19,15 @@ import {
   formatCurrency,
   generateId,
 } from '../../utils/formatters';
+import { PROTECTED_SAVING_SUBCATEGORY_ID } from '../../db/dummyDb';
+import { ThousandInput } from '../ThousandInput';
 
 interface InputTransactionTabProps {
   categories: Category[];
   weeklyDateRanges: WeeklyDateRanges;
   currency: 'IDR' | 'USD';
   editingTransaction: Transaction | null;
+  isMobileLayout?: boolean;
   onCancelEdit: () => void;
   onSaveSingle: (trx: Transaction, openPortalAfter?: boolean) => void;
   onSaveBatch: (trxs: Transaction[]) => void;
@@ -34,14 +37,6 @@ interface InputTransactionTabProps {
     name: string;
   } | null;
 }
-
-const CHANNELS = [
-  'MyBCA QRIS',
-  'MyBCA Transfer',
-  'BCA Debit',
-  'Cash',
-  'Manual',
-];
 
 const PRESET_AMOUNTS = [25000, 50000, 100000, 250000, 500000, 1000000];
 
@@ -53,7 +48,6 @@ interface BatchRow {
   categoryId: string;
   subcategoryId: string;
   notes: string;
-  channel: string;
 }
 
 export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
@@ -61,6 +55,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
   weeklyDateRanges,
   currency,
   editingTransaction,
+  isMobileLayout = false,
   onCancelEdit,
   onSaveSingle,
   onSaveBatch,
@@ -77,7 +72,6 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
   const [notes, setNotes] = useState('');
-  const [channel, setChannel] = useState('MyBCA QRIS');
 
   // Inline subcategory creator
   const [showAddSub, setShowAddSub] = useState(false);
@@ -85,9 +79,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
 
   // Batch rows state
   const createEmptyRow = (): BatchRow => {
-    const defaultCat =
-      categories.find((c) => c.type === 'expense' || c.type === 'both') ||
-      categories[0];
+    const defaultCat = categories[0];
     return {
       id: generateId('row'),
       date: todayIso,
@@ -96,7 +88,6 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
       categoryId: defaultCat?.id || '',
       subcategoryId: defaultCat?.subcategories[0]?.id || '',
       notes: '',
-      channel: 'MyBCA QRIS',
     };
   };
 
@@ -115,11 +106,8 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
       setCategoryId(editingTransaction.categoryId);
       setSubcategoryId(editingTransaction.subcategoryId || '');
       setNotes(editingTransaction.notes);
-      setChannel(editingTransaction.channel);
     } else {
-      const defaultCat = categories.find(
-        (c) => c.type === 'expense' || c.type === 'both'
-      );
+      const defaultCat = categories[0];
       if (!categoryId && defaultCat) {
         setCategoryId(defaultCat.id);
         setSubcategoryId(defaultCat.subcategories[0]?.id || '');
@@ -127,10 +115,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
     }
   }, [editingTransaction]);
 
-  const availableCategories = useMemo(
-    () => categories.filter((c) => c.type === type || c.type === 'both'),
-    [categories, type]
-  );
+  const availableCategories = categories;
 
   const selectedCategory = useMemo(
     () =>
@@ -139,17 +124,9 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
     [availableCategories, categoryId]
   );
 
-  // Sync category when type switches
+  // Switch transaction type while preserving selected category
   const handleTypeChange = (nextType: TransactionType) => {
     setType(nextType);
-    const compatible = categories.filter(
-      (c) => c.type === nextType || c.type === 'both'
-    );
-    if (!compatible.some((c) => c.id === categoryId)) {
-      const first = compatible[0];
-      setCategoryId(first?.id || '');
-      setSubcategoryId(first?.subcategories[0]?.id || '');
-    }
   };
 
   const detectedWeek = useMemo(
@@ -162,8 +139,14 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
       (c) => c.id === 'cat-saving' || c.name.toLowerCase() === 'saving'
     );
     if (savingCat) {
+      const savingSub =
+        savingCat.subcategories.find(
+          (s) =>
+            s.id === PROTECTED_SAVING_SUBCATEGORY_ID ||
+            s.name.trim().toLowerCase() === 'saving'
+        ) || savingCat.subcategories[0];
       setCategoryId(savingCat.id);
-      setSubcategoryId(savingCat.subcategories[0]?.id || '');
+      setSubcategoryId(savingSub?.id || '');
     }
   };
 
@@ -201,8 +184,8 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
       categoryName: cat?.name || 'Lain-lain',
       subcategoryId: sub?.id,
       subcategoryName: sub?.name,
-      notes: notes.trim() || cat?.name || 'Transaksi',
-      channel,
+      notes: notes.trim() || sub?.name || cat?.name || 'Transaksi',
+      channel: editingTransaction?.channel || 'Manual',
       createdAt: editingTransaction ? editingTransaction.createdAt : Date.now(),
     };
 
@@ -235,8 +218,8 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
         categoryName: cat?.name || 'Lain-lain',
         subcategoryId: sub?.id,
         subcategoryName: sub?.name,
-        notes: row.notes.trim() || cat?.name || 'Transaksi Batch',
-        channel: row.channel,
+        notes: row.notes.trim() || sub?.name || cat?.name || 'Transaksi Batch',
+        channel: 'Manual',
         createdAt: now + idx,
       });
     });
@@ -248,7 +231,13 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div
+        className={`flex justify-between gap-3 ${
+          isMobileLayout
+            ? 'flex-col'
+            : 'flex-col sm:flex-row sm:items-center'
+        }`}
+      >
         <div>
           <h2 className="text-xl font-bold text-slate-900">
             {editingTransaction ? 'Edit Transaksi' : 'Input Transaksi'}
@@ -261,11 +250,11 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
         </div>
 
         {!editingTransaction && (
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl self-start">
+          <div className="max-w-full overflow-x-auto flex items-center gap-1 p-1 bg-slate-100 rounded-xl self-start">
             <button
               type="button"
               onClick={() => setMode('single')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
                 mode === 'single'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -276,7 +265,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
             <button
               type="button"
               onClick={() => setMode('multiple')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
                 mode === 'multiple'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -289,7 +278,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
       </div>
 
       {mode === 'single' ? (
-        <div className="rounded-2xl bg-white border border-slate-100 p-5 sm:p-6 max-w-2xl">
+        <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-6 max-w-2xl">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -329,21 +318,20 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                 Nominal Transaksi (IDR)
               </label>
               <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input
-                    type="number"
-                    min={1}
+                <div className="relative flex-1 min-w-0">
+                  <ThousandInput
                     required
                     value={amountStr}
-                    onChange={(e) => setAmountStr(e.target.value)}
+                    onValueChange={(raw) => setAmountStr(raw)}
                     placeholder="0"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-lg font-bold font-mono tabular-nums text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    ariaLabel="Nominal transaksi"
+                    className="w-full min-w-0 rounded-xl border border-slate-200 px-3.5 sm:px-4 py-3 text-lg font-bold font-mono tabular-nums text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={handleMultiplyThousand}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 text-sm font-mono font-bold transition-colors whitespace-nowrap"
+                  className="px-3.5 sm:px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 text-sm font-mono font-bold transition-colors whitespace-nowrap shrink-0"
                 >
                   +000
                 </button>
@@ -356,51 +344,36 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                     onClick={() => setAmountStr(String(val))}
                     className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-mono tabular-nums text-slate-700"
                   >
-                    {formatCurrency(val, currency, { compact: true })}
+                    {formatCurrency(val, currency)}
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Date & Detected Week */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Tanggal Transaksi
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                />
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Otomatis masuk ke:{' '}
-                  <strong className="text-slate-800">{detectedWeek}</strong>
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Channel Pembayaran
-                </label>
-                <select
-                  value={channel}
-                  onChange={(e) => setChannel(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
-                >
-                  {CHANNELS.map((ch) => (
-                    <option key={ch} value={ch}>
-                      {ch}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Tanggal Transaksi
+              </label>
+              <input
+                type="date"
+                required
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                Otomatis masuk ke:{' '}
+                <strong className="text-slate-800">{detectedWeek}</strong>
+              </p>
             </div>
 
             {/* Category + Saving Shortcut + Subcategory */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div
+              className={`grid gap-4 ${
+                isMobileLayout ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
+              }`}
+            >
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-semibold text-slate-700">
@@ -468,7 +441,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                       value={newSubName}
                       onChange={(e) => setNewSubName(e.target.value)}
                       placeholder="Nama sub-kategori baru..."
-                      className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+                      className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
                     />
                     <button
                       type="button"
@@ -489,17 +462,17 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
               </div>
             </div>
 
-            {/* Notes / Merchant */}
+            {/* Notes / Merchant (Optional) */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Catatan / Nama Merchant
+                Catatan / Nama Merchant{' '}
+                <span className="font-normal text-slate-400">(Opsional)</span>
               </label>
               <input
                 type="text"
-                required
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Contoh: Kopi Susu Fore Coffee, Belanja Bulanan..."
+                placeholder="Opsional — Contoh: Kopi Susu Fore Coffee, Belanja Bulanan..."
                 className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
               />
             </div>
@@ -536,14 +509,14 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0A3D91] text-sm font-semibold transition-colors"
                   >
                     <Landmark className="w-4 h-4" />
-                    Simpan & Portal MyBCA
+                    Mybca
                   </button>
                 )}
                 <button
                   type="submit"
                   className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition-colors"
                 >
-                  {editingTransaction ? 'Simpan Perubahan' : 'Simpan Transaksi'}
+                  {editingTransaction ? 'Simpan Perubahan' : 'Add'}
                 </button>
               </div>
             </div>
@@ -553,11 +526,11 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
         /* Multiple Batch Transaction Mode */
         <form
           onSubmit={handleSaveMultiple}
-          className="rounded-2xl bg-white border border-slate-100 p-5 space-y-4"
+          className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-4"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <Layers className="w-4 h-4" />
+              <Layers className="w-4 h-4 shrink-0" />
               <span>Input Banyak Transaksi ({batchRows.length} baris)</span>
             </div>
             <button
@@ -572,20 +545,43 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
 
           <div className="space-y-3">
             {batchRows.map((row, idx) => {
-              const rowCats = categories.filter(
-                (c) => c.type === row.type || c.type === 'both'
-              );
+              const rowCats = categories;
               const activeCat =
                 rowCats.find((c) => c.id === row.categoryId) || rowCats[0];
 
               return (
                 <div
                   key={row.id}
-                  className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center p-3 rounded-xl bg-slate-50 border border-slate-100"
+                  className={`grid gap-2.5 items-center p-3 rounded-xl bg-slate-50 border border-slate-100 ${
+                    isMobileLayout
+                      ? 'grid-cols-1'
+                      : 'grid-cols-1 md:grid-cols-12'
+                  }`}
                 >
-                  <span className="md:col-span-1 text-xs font-mono text-slate-400">
-                    #{idx + 1}
-                  </span>
+                  <div
+                    className={`flex items-center justify-between ${
+                      isMobileLayout ? '' : 'md:col-span-1'
+                    }`}
+                  >
+                    <span className="text-xs font-mono font-semibold text-slate-500">
+                      #{idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={batchRows.length <= 1}
+                      onClick={() =>
+                        setBatchRows((prev) =>
+                          prev.filter((r) => r.id !== row.id)
+                        )
+                      }
+                      aria-label="Hapus baris"
+                      className={`${
+                        isMobileLayout ? 'inline-flex' : 'inline-flex md:hidden'
+                      } p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
 
                   <input
                     type="date"
@@ -597,49 +593,48 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                         )
                       )
                     }
-                    className="md:col-span-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono"
+                    className={`${
+                      isMobileLayout ? '' : 'md:col-span-2'
+                    } w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono`}
                   />
 
                   <select
                     value={row.type}
                     onChange={(e) => {
                       const nextType = e.target.value as TransactionType;
-                      const compat = categories.filter(
-                        (c) => c.type === nextType || c.type === 'both'
-                      );
                       setBatchRows((prev) =>
                         prev.map((r) =>
                           r.id === row.id
                             ? {
                                 ...r,
                                 type: nextType,
-                                categoryId: compat[0]?.id || r.categoryId,
-                                subcategoryId:
-                                  compat[0]?.subcategories[0]?.id || '',
                               }
                             : r
                         )
                       );
                     }}
-                    className="md:col-span-1 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs"
+                    className={`${
+                      isMobileLayout ? '' : 'md:col-span-1'
+                    } w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs`}
                   >
                     <option value="expense">Keluar</option>
                     <option value="income">Masuk</option>
                   </select>
 
-                  <input
-                    type="number"
-                    min={1}
+                  <ThousandInput
                     placeholder="Nominal"
+                    ariaLabel={`Nominal baris ${idx + 1}`}
                     value={row.amount}
-                    onChange={(e) =>
+                    onValueChange={(raw) =>
                       setBatchRows((prev) =>
                         prev.map((r) =>
-                          r.id === row.id ? { ...r, amount: e.target.value } : r
+                          r.id === row.id ? { ...r, amount: raw } : r
                         )
                       )
                     }
-                    className="md:col-span-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono tabular-nums"
+                    className={`${
+                      isMobileLayout ? '' : 'md:col-span-2'
+                    } w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono tabular-nums`}
                   />
 
                   <select
@@ -661,7 +656,9 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                         )
                       );
                     }}
-                    className="md:col-span-2 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs"
+                    className={`${
+                      isMobileLayout ? '' : 'md:col-span-2'
+                    } w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs`}
                   >
                     {rowCats.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -672,7 +669,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
 
                   <input
                     type="text"
-                    placeholder="Catatan / Merchant"
+                    placeholder="Catatan / Merchant (opsional)"
                     value={row.notes}
                     onChange={(e) =>
                       setBatchRows((prev) =>
@@ -681,10 +678,16 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                         )
                       )
                     }
-                    className="md:col-span-3 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs"
+                    className={`${
+                      isMobileLayout ? '' : 'md:col-span-3'
+                    } w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs`}
                   />
 
-                  <div className="md:col-span-1 flex justify-end">
+                  <div
+                    className={`${
+                      isMobileLayout ? 'hidden' : 'hidden md:flex md:col-span-1 justify-end'
+                    }`}
+                  >
                     <button
                       type="button"
                       disabled={batchRows.length <= 1}

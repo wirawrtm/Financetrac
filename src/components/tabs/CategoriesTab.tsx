@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Check,
   Lock,
@@ -8,12 +8,14 @@ import {
   X,
 } from 'lucide-react';
 import { Category, DriveImageItem } from '../../types/finance';
+import { isProtectedSavingSubcategory } from '../../db/dummyDb';
 import { generateId } from '../../utils/formatters';
 import { CATEGORY_ICON_OPTIONS, CategoryIcon } from '../CategoryIcon';
 
 interface CategoriesTabProps {
   categories: Category[];
   gallery: DriveImageItem[];
+  isMobileLayout?: boolean;
   onAddCategory: (cat: Category) => void;
   onUpdateCategory: (cat: Category) => void;
   onRequestDeleteCategory: (cat: Category) => void;
@@ -42,6 +44,7 @@ const COLOR_PRESETS = [
 export const CategoriesTab: React.FC<CategoriesTabProps> = ({
   categories,
   gallery,
+  isMobileLayout = false,
   onAddCategory,
   onUpdateCategory,
   onRequestDeleteCategory,
@@ -49,14 +52,9 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
   onRenameSubcategory,
   onDeleteSubcategory,
 }) => {
-  const [filter, setFilter] = useState<'all' | 'expense' | 'income' | 'saving'>(
-    'all'
-  );
-
   // Add/Edit category form state
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [name, setName] = useState('');
-  const [type, setType] = useState<'expense' | 'income' | 'both'>('expense');
   const [color, setColor] = useState('#2563EB');
   const [icon, setIcon] = useState('Utensils');
   const [driveItemId, setDriveItemId] = useState('');
@@ -69,20 +67,9 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
     value: string;
   } | null>(null);
 
-  const filteredCategories = useMemo(() => {
-    return categories.filter((c) => {
-      if (filter === 'all') return true;
-      if (filter === 'saving') {
-        return c.id === 'cat-saving' || c.name.toLowerCase() === 'saving';
-      }
-      return c.type === filter || c.type === 'both';
-    });
-  }, [categories, filter]);
-
   const resetForm = () => {
     setEditingCat(null);
     setName('');
-    setType('expense');
     setColor('#2563EB');
     setIcon('Utensils');
     setDriveItemId('');
@@ -91,7 +78,6 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
   const startEditCategory = (c: Category) => {
     setEditingCat(c);
     setName(c.name);
-    setType(c.type);
     setColor(c.color);
     setIcon(c.icon);
     setDriveItemId(c.driveItemId || '');
@@ -111,7 +97,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
       onUpdateCategory({
         ...editingCat,
         name: isSaving ? 'Saving' : name.trim(),
-        type: isSaving ? 'both' : type,
+        type: 'both',
         color,
         icon,
         driveItemId: driveItemId || undefined,
@@ -122,7 +108,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
       onAddCategory({
         id: generateId('cat'),
         name: name.trim(),
-        type,
+        type: 'both',
         color,
         icon,
         driveItemId: driveItemId || undefined,
@@ -135,46 +121,20 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">
-            Kategori & Sub-Kategori
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Kelola kategori utama, sub-kategori, warna, serta ikon bawaan atau
-            dari Galeri Aset. Kategori sistem Saving terlindungi.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl self-start">
-          {(
-            [
-              { key: 'all', label: 'Semua' },
-              { key: 'expense', label: 'Pengeluaran' },
-              { key: 'income', label: 'Pemasukan' },
-              { key: 'saving', label: 'Saving' },
-            ] as const
-          ).map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFilter(f.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                filter === f.key
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+      <div>
+        <h2 className="text-xl font-bold text-slate-900">
+          Kategori &amp; Sub-Kategori
+        </h2>
+        <p className="text-xs text-slate-500 mt-0.5">
+          Semua kategori dapat digunakan untuk pemasukan maupun pengeluaran.
+          Kelola sub-kategori, warna, serta ikon bawaan atau dari Galeri Aset.
+        </p>
       </div>
 
       {/* Create / Edit Category Card */}
       <form
         onSubmit={handleSubmitCategory}
-        className="rounded-2xl bg-white border border-slate-100 p-5 space-y-4"
+        className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-4"
       >
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900">
@@ -191,7 +151,13 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div
+          className={`grid gap-3 ${
+            isMobileLayout
+              ? 'grid-cols-1'
+              : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+          }`}
+        >
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-1">
               Nama Kategori
@@ -205,24 +171,6 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
               placeholder="Misal: Kesehatan"
               className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
             />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              Tipe Transaksi
-            </label>
-            <select
-              value={type}
-              disabled={editingCat?.id === 'cat-saving'}
-              onChange={(e) =>
-                setType(e.target.value as 'expense' | 'income' | 'both')
-              }
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm disabled:bg-slate-50"
-            >
-              <option value="expense">Pengeluaran</option>
-              <option value="income">Pemasukan</option>
-              <option value="both">Keduanya (Both)</option>
-            </select>
           </div>
 
           <div>
@@ -291,8 +239,12 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
       </form>
 
       {/* Categories List & Subcategories */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredCategories.map((cat) => {
+      <div
+        className={`grid gap-4 ${
+          isMobileLayout ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'
+        }`}
+      >
+        {categories.map((cat) => {
           const isProtected =
             cat.id === 'cat-saving' ||
             cat.name.toLowerCase() === 'saving' ||
@@ -301,7 +253,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
           return (
             <div
               key={cat.id}
-              className="rounded-2xl bg-white border border-slate-100 p-5 flex flex-col justify-between gap-4"
+              className="min-w-0 rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 flex flex-col justify-between gap-4"
             >
               <div>
                 <div className="flex items-start justify-between gap-3">
@@ -320,12 +272,8 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
                         )}
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        {cat.type === 'expense'
-                          ? 'Pengeluaran'
-                          : cat.type === 'income'
-                          ? 'Pemasukan'
-                          : 'Pemasukan & Pengeluaran'}{' '}
-                        · {cat.subcategories.length} sub-kategori
+                        Pemasukan &amp; Pengeluaran · {cat.subcategories.length}{' '}
+                        sub-kategori
                       </p>
                     </div>
                   </div>
@@ -361,7 +309,12 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
                   ) : (
                     <div className="divide-y divide-slate-100">
                       {cat.subcategories.map((sub) => {
+                        const isProtectedSub = isProtectedSavingSubcategory(
+                          cat,
+                          sub
+                        );
                         const isEditingThis =
+                          !isProtectedSub &&
                           editingSub?.catId === cat.id &&
                           editingSub?.subId === sub.id;
 
@@ -371,7 +324,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
                             className="py-1.5 flex items-center justify-between gap-2"
                           >
                             {isEditingThis ? (
-                              <div className="flex items-center gap-1.5 flex-1">
+                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                 <input
                                   type="text"
                                   value={editingSub.value}
@@ -381,7 +334,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
                                       value: e.target.value,
                                     })
                                   }
-                                  className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs"
+                                  className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs"
                                 />
                                 <button
                                   type="button"
@@ -409,35 +362,49 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
                               </div>
                             ) : (
                               <>
-                                <span className="text-xs text-slate-700 truncate">
-                                  {sub.name}
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setEditingSub({
-                                        catId: cat.id,
-                                        subId: sub.id,
-                                        value: sub.name,
-                                      })
-                                    }
-                                    aria-label={`Ubah sub-kategori ${sub.name}`}
-                                    className="p-1 rounded text-slate-400 hover:text-slate-900"
-                                  >
-                                    <Pencil className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      onDeleteSubcategory(cat.id, sub.id)
-                                    }
-                                    aria-label={`Hapus sub-kategori ${sub.name}`}
-                                    className="p-1 rounded text-slate-400 hover:text-red-600"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </button>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="text-xs text-slate-700 truncate">
+                                    {sub.name}
+                                  </span>
+                                  {isProtectedSub && (
+                                    <Lock
+                                      className="w-3 h-3 text-slate-400 shrink-0"
+                                      aria-label="Sub-kategori sistem"
+                                    />
+                                  )}
                                 </div>
+                                {isProtectedSub ? (
+                                  <span className="text-[10px] font-medium text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded-md shrink-0">
+                                    Sistem
+                                  </span>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setEditingSub({
+                                          catId: cat.id,
+                                          subId: sub.id,
+                                          value: sub.name,
+                                        })
+                                      }
+                                      aria-label={`Ubah sub-kategori ${sub.name}`}
+                                      className="p-1 rounded text-slate-400 hover:text-slate-900"
+                                    >
+                                      <Pencil className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        onDeleteSubcategory(cat.id, sub.id)
+                                      }
+                                      aria-label={`Hapus sub-kategori ${sub.name}`}
+                                      className="p-1 rounded text-slate-400 hover:text-red-600"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                )}
                               </>
                             )}
                           </div>
@@ -457,7 +424,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
                     setNewSubDraft({ ...newSubDraft, [cat.id]: e.target.value })
                   }
                   placeholder="Tambah sub-kategori..."
-                  className="flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-xs"
+                  className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-xs"
                 />
                 <button
                   type="button"
@@ -467,7 +434,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
                     onAddSubcategory(cat.id, val);
                     setNewSubDraft({ ...newSubDraft, [cat.id]: '' });
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold whitespace-nowrap"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold whitespace-nowrap shrink-0"
                 >
                   + Tambah
                 </button>

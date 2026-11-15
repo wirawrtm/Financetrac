@@ -19,13 +19,16 @@ import {
 } from '../../types/finance';
 import {
   detectWeekFromDate,
+  formatNumberID,
   generateId,
   localFallbackAutoPlot,
 } from '../../utils/formatters';
+import { ThousandInput } from '../ThousandInput';
 
 interface AutoPlotTabProps {
   categories: Category[];
   weeklyDateRanges: WeeklyDateRanges;
+  isMobileLayout?: boolean;
   onSaveBulkTransactions: (trxs: Transaction[]) => void;
   onNotify: (
     type: 'success' | 'error' | 'info' | 'warning',
@@ -45,6 +48,7 @@ const SAMPLE_MUTATION_TEXT = `13/11 QRIS FORE COFFEE JAKARTA Successful DB 42.00
 export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
   categories,
   weeklyDateRanges,
+  isMobileLayout = false,
   onSaveBulkTransactions,
   onNotify,
 }) => {
@@ -227,7 +231,7 @@ export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
           className="w-full rounded-xl border border-slate-200 p-4 text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900"
         />
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-slate-400">
             {engineLabel ? `Mesin aktif: ${engineLabel}` : 'Siap memproses teks multi-baris'}
           </p>
@@ -249,19 +253,19 @@ export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
 
       {/* Review Recommendations */}
       {items.length > 0 && (
-        <div className="rounded-2xl bg-white border border-slate-100 p-5 space-y-4">
+        <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-bold text-slate-900">
-                Hasil Rekomendasi Plotting ({selectedCount}/{items.length}{' '}
-                dipilih)
+                Hasil Rekomendasi Plotting ({formatNumberID(selectedCount)}/
+                {formatNumberID(items.length)} dipilih)
               </h3>
               <p className="text-xs text-slate-500">
                 Periksa atau ubah kategori, nominal, dan catatan sebelum simpan
                 massal
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -282,16 +286,14 @@ export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold"
               >
                 <Save className="w-3.5 h-3.5" />
-                Simpan Massal ({selectedCount})
+                Simpan Massal ({formatNumberID(selectedCount)})
               </button>
             </div>
           </div>
 
           <div className="space-y-3">
             {items.map((item) => {
-              const compatCats = categories.filter(
-                (c) => c.type === item.type || c.type === 'both'
-              );
+              const compatCats = categories;
               const activeCat =
                 compatCats.find((c) => c.id === item.categoryId) ||
                 compatCats[0];
@@ -305,21 +307,53 @@ export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
                       : 'border-slate-100 bg-white opacity-60'
                   }`}
                 >
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
-                    <div className="lg:col-span-1 flex items-center gap-2">
+                  <div
+                    className={`grid gap-2.5 sm:gap-3 items-center ${
+                      isMobileLayout
+                        ? 'grid-cols-1'
+                        : 'grid-cols-1 lg:grid-cols-12'
+                    }`}
+                  >
+                    <div
+                      className={`flex items-center justify-between gap-2 ${
+                        isMobileLayout ? '' : 'lg:col-span-1'
+                      }`}
+                    >
                       <button
                         type="button"
                         onClick={() =>
                           updateItem(item.id, { selected: !item.selected })
                         }
                         aria-label="Pilih item"
-                        className="text-slate-800"
+                        className="inline-flex items-center gap-2 text-slate-800"
                       >
                         {item.selected ? (
                           <CheckSquare className="w-5 h-5" />
                         ) : (
                           <Square className="w-5 h-5 text-slate-400" />
                         )}
+                        <span
+                          className={`text-xs font-medium text-slate-600 ${
+                            isMobileLayout ? 'inline' : 'inline lg:hidden'
+                          }`}
+                        >
+                          {item.selected ? 'Dipilih' : 'Lewati'}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setItems((prev) =>
+                            prev.filter((i) => i.id !== item.id)
+                          )
+                        }
+                        aria-label="Hapus rekomendasi"
+                        className={`${
+                          isMobileLayout ? 'inline-flex' : 'inline-flex lg:hidden'
+                        } p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50`}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 
@@ -329,7 +363,9 @@ export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
                       onChange={(e) =>
                         updateItem(item.id, { date: e.target.value })
                       }
-                      className="lg:col-span-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono"
+                      className={`${
+                        isMobileLayout ? '' : 'lg:col-span-2'
+                      } w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono`}
                     />
 
                     <input
@@ -338,42 +374,38 @@ export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
                       onChange={(e) =>
                         updateItem(item.id, { notes: e.target.value })
                       }
-                      className="lg:col-span-3 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium"
+                      className={`${
+                        isMobileLayout ? '' : 'lg:col-span-3'
+                      } w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium`}
                     />
 
                     <select
                       value={item.type}
                       onChange={(e) => {
                         const nextType = e.target.value as TransactionType;
-                        const nextCompat = categories.filter(
-                          (c) => c.type === nextType || c.type === 'both'
-                        );
                         updateItem(item.id, {
                           type: nextType,
-                          categoryId: nextCompat[0]?.id || item.categoryId,
-                          categoryName:
-                            nextCompat[0]?.name || item.categoryName,
-                          subcategoryId: nextCompat[0]?.subcategories[0]?.id,
-                          subcategoryName:
-                            nextCompat[0]?.subcategories[0]?.name,
                         });
                       }}
-                      className="lg:col-span-1 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs"
+                      className={`${
+                        isMobileLayout ? '' : 'lg:col-span-1'
+                      } w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs`}
                     >
                       <option value="expense">Keluar</option>
                       <option value="income">Masuk</option>
                     </select>
 
-                    <input
-                      type="number"
-                      min={1}
+                    <ThousandInput
                       value={item.amount}
-                      onChange={(e) =>
+                      onValueChange={(_, numeric) =>
                         updateItem(item.id, {
-                          amount: Number(e.target.value) || 0,
+                          amount: Math.max(0, numeric),
                         })
                       }
-                      className="lg:col-span-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono tabular-nums"
+                      ariaLabel="Nominal rekomendasi"
+                      className={`${
+                        isMobileLayout ? '' : 'lg:col-span-2'
+                      } w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono tabular-nums`}
                     />
 
                     <select
@@ -389,7 +421,9 @@ export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
                           subcategoryName: chosen?.subcategories[0]?.name,
                         });
                       }}
-                      className="lg:col-span-2 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs"
+                      className={`${
+                        isMobileLayout ? '' : 'lg:col-span-2'
+                      } w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs`}
                     >
                       {compatCats.map((c) => (
                         <option key={c.id} value={c.id}>
@@ -398,7 +432,13 @@ export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
                       ))}
                     </select>
 
-                    <div className="lg:col-span-1 flex items-center justify-end gap-1">
+                    <div
+                      className={`${
+                        isMobileLayout
+                          ? 'hidden'
+                          : 'hidden lg:flex lg:col-span-1 items-center justify-end gap-1'
+                      }`}
+                    >
                       <button
                         type="button"
                         onClick={() =>
@@ -440,7 +480,9 @@ export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
                       <span aria-hidden="true">·</span>
                       <span>Channel: {item.channel}</span>
                     </div>
-                    <span>Alasan: {item.reason}</span>
+                    <span className="min-w-0 break-words">
+                      Alasan: {item.reason}
+                    </span>
                   </div>
                 </div>
               );

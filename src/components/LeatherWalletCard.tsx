@@ -49,16 +49,16 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
             type="button"
             onClick={() => setPrimaryCard('weekly')}
             aria-label={`Jadikan kartu Budget ${runningWeekLabel} sebagai kartu utama`}
-            className="w-full h-14 rounded-t-[26px] px-4 pt-3.5 translate-y-1 flex items-start justify-between text-white shadow-md cursor-pointer hover:translate-y-0 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+            className="w-full h-14 rounded-t-[26px] px-4 pt-3.5 translate-y-1 flex items-start justify-between gap-2 text-white shadow-md cursor-pointer hover:translate-y-0 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
             style={{
               background:
                 'linear-gradient(155deg, #6B3E24 0%, #56301A 45%, #442412 100%)',
             }}
           >
-            <span className="font-bold tracking-tight text-sm text-[#F5EBE2]">
+            <span className="font-bold tracking-tight text-xs sm:text-sm text-[#F5EBE2] truncate">
               Budget {runningWeekLabel}
             </span>
-            <span className="mt-0.5 text-xs text-[#E7D4C5]/95 font-semibold tabular-nums">
+            <span className="mt-0.5 text-xs text-[#E7D4C5]/95 font-semibold tabular-nums shrink-0">
               {hidden
                 ? '••••••••'
                 : `${remaining < 0 ? '-' : ''}${formatCurrency(
@@ -72,18 +72,15 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
             type="button"
             onClick={() => setPrimaryCard('monthly')}
             aria-label="Jadikan kartu Budget Monthly sebagai kartu utama"
-            className="w-full h-14 rounded-t-[26px] bg-gradient-to-r from-[#082458] via-[#0D3984] to-[#144DA8] shadow-md px-4 pt-3.5 translate-y-1 flex items-start justify-between text-white cursor-pointer hover:translate-y-0 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+            className="w-full h-14 rounded-t-[26px] bg-gradient-to-r from-[#082458] via-[#0D3984] to-[#144DA8] shadow-md px-4 pt-3.5 translate-y-1 flex items-start justify-between gap-2 text-white cursor-pointer hover:translate-y-0 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
           >
-            <span className="font-bold tracking-tight text-sm">
+            <span className="font-bold tracking-tight text-xs sm:text-sm truncate">
               Budget Monthly
             </span>
-            <span className="mt-0.5 text-xs text-blue-100/95 font-semibold tabular-nums">
+            <span className="mt-0.5 text-xs text-blue-100/95 font-semibold tabular-nums shrink-0">
               {hidden
                 ? '••••••••'
-                : `${monthlyRemaining < 0 ? '-' : ''}${formatCurrency(
-                    Math.abs(monthlyRemaining),
-                    profile.currency
-                  )}`}
+                : formatCurrency(monthlySaving, profile.currency)}
             </span>
           </button>
         )}
@@ -104,7 +101,7 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
       >
         {/* Inner Stitched / Framed Border */}
         <div
-          className={`rounded-[21px] border border-dashed px-5 pt-6 pb-5 relative overflow-hidden ${
+          className={`rounded-[21px] border border-dashed px-4 sm:px-5 pt-5 sm:pt-6 pb-4 sm:pb-5 relative overflow-hidden ${
             isMonthlyPrimary
               ? 'border-blue-300/45'
               : 'border-[#9A6848]/70'
@@ -117,16 +114,16 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
           />
 
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p
-                className={`text-xs font-medium tracking-wide ${
+                className={`text-xs font-medium tracking-wide truncate ${
                   isMonthlyPrimary ? 'text-blue-100/85' : 'text-[#E7D4C5]/85'
                 }`}
               >
                 Total Spending ·{' '}
                 {isMonthlyPrimary ? 'Monthly' : runningWeekLabel}
               </p>
-              <p className="mt-1 text-2xl sm:text-[28px] font-bold tracking-tight text-white tabular-nums leading-tight truncate">
+              <p className="mt-1 text-xl sm:text-[28px] font-bold tracking-tight text-white tabular-nums leading-tight truncate">
                 {hidden
                   ? '••••••••••'
                   : formatCurrency(activeSpending, profile.currency)}
@@ -154,11 +151,11 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
 
           {/* Budget, Spending, and Highlighted Remaining (Right) */}
           <div
-            className={`mt-4 pt-3.5 border-t flex items-center justify-between gap-3 ${
+            className={`mt-4 pt-3.5 border-t flex items-center justify-between gap-2.5 sm:gap-3 ${
               isMonthlyPrimary ? 'border-blue-300/30' : 'border-[#9A6848]/40'
             }`}
           >
-            <div className="flex items-center gap-4 sm:gap-5 min-w-0">
+            <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
               <div className="min-w-0">
                 <p
                   className={`text-[11px] font-medium ${
@@ -195,7 +192,7 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
 
             <div className="text-right shrink-0">
               <p
-                className={`text-xs font-semibold tracking-wide ${
+                className={`text-[11px] sm:text-xs font-semibold tracking-wide ${
                   isMonthlyPrimary
                     ? 'text-emerald-200'
                     : activeRemaining < 0
@@ -206,7 +203,7 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
                 {isMonthlyPrimary ? 'Saving' : 'Remaining'}
               </p>
               <p
-                className={`mt-1 text-2xl sm:text-[28px] font-bold tabular-nums leading-none whitespace-nowrap ${
+                className={`mt-1 text-xl sm:text-[28px] font-bold tabular-nums leading-none whitespace-nowrap ${
                   isMonthlyPrimary
                     ? 'text-emerald-300'
                     : activeRemaining < 0

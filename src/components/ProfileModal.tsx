@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, X } from 'lucide-react';
 import { UserProfile } from '../types/finance';
+import { ThousandInput } from './ThousandInput';
 
 interface ProfileModalProps {
   open: boolean;
@@ -40,10 +41,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       aria-modal="true"
       aria-labelledby="profile-modal-title"
     >
-      <div className="w-full max-w-lg rounded-2xl bg-white border border-slate-200 shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <div className="w-full max-w-lg rounded-2xl bg-white border border-slate-200 shadow-xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-700">
+            <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
               <User className="w-4 h-4" />
             </div>
             <div>
@@ -62,13 +63,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Tutup profil"
-            className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500"
+            className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
@@ -108,12 +109,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
                 Saldo Awal (dalam IDR)
               </label>
-              <input
-                type="number"
+              <ThousandInput
+                allowZero
+                allowNegative
                 value={form.initialBalance}
-                onChange={(e) =>
-                  setForm({ ...form, initialBalance: Number(e.target.value) })
+                onValueChange={(_, numeric) =>
+                  setForm({ ...form, initialBalance: numeric })
                 }
+                ariaLabel="Saldo Awal"
                 className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-slate-900"
               />
             </div>

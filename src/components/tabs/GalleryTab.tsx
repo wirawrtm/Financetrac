@@ -6,6 +6,7 @@ import { generateId, parseGoogleDriveUrl } from '../../utils/formatters';
 interface GalleryTabProps {
   gallery: DriveImageItem[];
   categories: Category[];
+  isMobileLayout?: boolean;
   onAddGalleryItem: (item: DriveImageItem) => void;
   onDeleteGalleryItem: (id: string) => void;
   onLinkToCategory: (itemId: string, categoryId: string) => void;
@@ -44,6 +45,7 @@ const GalleryPreviewImage: React.FC<{ item: DriveImageItem }> = ({ item }) => {
 export const GalleryTab: React.FC<GalleryTabProps> = ({
   gallery,
   categories,
+  isMobileLayout = false,
   onAddGalleryItem,
   onDeleteGalleryItem,
   onLinkToCategory,
@@ -94,9 +96,13 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
       {/* Add Form */}
       <form
         onSubmit={handleAdd}
-        className="rounded-2xl bg-white border border-slate-100 p-5 space-y-4"
+        className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-4"
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div
+          className={`grid gap-4 ${
+            isMobileLayout ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'
+          }`}
+        >
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
               Nama Aset / Ikon
@@ -182,11 +188,17 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          className={`grid gap-4 ${
+            isMobileLayout
+              ? 'grid-cols-1'
+              : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+          }`}
+        >
           {gallery.map((item) => (
             <div
               key={item.id}
-              className="rounded-2xl bg-white border border-slate-100 p-4 space-y-3"
+              className="min-w-0 rounded-2xl bg-white border border-slate-100 p-4 space-y-3"
             >
               <GalleryPreviewImage item={item} />
 
@@ -214,7 +226,7 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
                 <select
                   value={item.categoryRefId || ''}
                   onChange={(e) => onLinkToCategory(item.id, e.target.value)}
-                  className="flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
+                  className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
                 >
                   <option value="">Belum terhubung ke kategori</option>
                   {categories.map((c) => (
