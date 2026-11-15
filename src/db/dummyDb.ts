@@ -26,6 +26,22 @@ export function isProtectedSavingSubcategory(
   );
 }
 
+export function isProtectedSavingTransaction(
+  t: Pick<
+    Transaction,
+    'categoryId' | 'categoryName' | 'subcategoryId' | 'subcategoryName'
+  >
+): boolean {
+  const isSavingCat =
+    t.categoryId === 'cat-saving' ||
+    t.categoryName.trim().toLowerCase() === 'saving';
+  if (!isSavingCat) return false;
+  return (
+    t.subcategoryId === PROTECTED_SAVING_SUBCATEGORY_ID ||
+    (t.subcategoryName || '').trim().toLowerCase() === 'saving'
+  );
+}
+
 export function ensureProtectedSavingSubcategory(categories: Category[]): {
   categories: Category[];
   changed: boolean;

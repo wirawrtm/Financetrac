@@ -23,7 +23,7 @@ import {
   formatNumberID,
   formatShortDateTime,
 } from '../../utils/formatters';
-import { PROTECTED_SAVING_SUBCATEGORY_ID } from '../../db/dummyDb';
+import { isProtectedSavingTransaction } from '../../db/dummyDb';
 import { CategoryIcon } from '../CategoryIcon';
 import { LeatherWalletCard } from '../LeatherWalletCard';
 
@@ -65,27 +65,26 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const summary = useMemo(() => {
     let totalIncome = 0;
     let totalExpense = 0;
+    let allExpense = 0;
     let savingOut = 0;
     let savingIn = 0;
 
     for (const t of transactions) {
-      const isSavingCat =
-        t.categoryId === 'cat-saving' ||
-        t.categoryName.trim().toLowerCase() === 'saving';
-      const isSavingSub =
-        t.subcategoryId === PROTECTED_SAVING_SUBCATEGORY_ID ||
-        (t.subcategoryName || '').trim().toLowerCase() === 'saving';
-      const isSaving = isSavingCat && isSavingSub;
+      const isSaving = isProtectedSavingTransaction(t);
       if (t.type === 'income') {
         totalIncome += t.amount;
         if (isSaving) savingIn += t.amount;
       } else {
-        totalExpense += t.amount;
-        if (isSaving) savingOut += t.amount;
+        allExpense += t.amount;
+        if (isSaving) {
+          savingOut += t.amount;
+        } else {
+          totalExpense += t.amount;
+        }
       }
     }
 
-    const currentBalance = profile.initialBalance + totalIncome - totalExpense;
+    const currentBalance = profile.initialBalance + totalIncome - allExpense;
     const totalSaving = savingIn - savingOut;
 
     return {
@@ -111,8 +110,11 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       let expense = 0;
       for (const t of transactions) {
         if (t.week === week) {
-          if (t.type === 'income') income += t.amount;
-          else expense += t.amount;
+          if (t.type === 'income') {
+            income += t.amount;
+          } else if (!isProtectedSavingTransaction(t)) {
+            expense += t.amount;
+          }
         }
       }
       const budget = weeklyBudgets[week] || 0;
@@ -137,6 +139,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const selectedBudgetBreakdown = useMemo(() => {
     const filtered = transactions.filter((t) => {
       if (t.type !== 'expense') return false;
+      if (isProtectedSavingTransaction(t)) return false;
       if (selectedBudgetWeek === 'Monthly') return true;
       return t.week === selectedBudgetWeek;
     });
@@ -230,14 +233,14 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     };
   }, [transactions, selectedBudgetWeek, weeklyBudgets, categories]);
 
-  // Grouped recent transactions (latest 8)
+  // Grouped recent transactions (latest 3)
   const groupedRecent = useMemo(() => {
     const sorted = [...transactions]
       .sort((a, b) => {
         if (a.date !== b.date) return b.date.localeCompare(a.date);
         return b.createdAt - a.createdAt;
       })
-      .slice(0, 8);
+      .slice(0, 3);
 
     const groups: { monthKey: string; label: string; items: Transaction[] }[] =
       [];

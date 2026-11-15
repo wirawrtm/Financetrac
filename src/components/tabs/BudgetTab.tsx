@@ -8,6 +8,7 @@ import {
   WeeklyDateRanges,
 } from '../../types/finance';
 import { formatCurrency, formatNumberID } from '../../utils/formatters';
+import { isProtectedSavingTransaction } from '../../db/dummyDb';
 import { ThousandInput } from '../ThousandInput';
 
 interface BudgetTabProps {
@@ -74,7 +75,9 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
       const spent = transactions
         .filter(
           (t) =>
-            t.type === 'expense' && (wk === 'Monthly' ? true : t.week === wk)
+            t.type === 'expense' &&
+            !isProtectedSavingTransaction(t) &&
+            (wk === 'Monthly' ? true : t.week === wk)
         )
         .reduce((sum, t) => sum + t.amount, 0);
       const limit = weeklyBudgets[wk] || 0;
@@ -86,7 +89,10 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
 
   const categoryRealization = useMemo(() => {
     const weekTrxs = transactions.filter(
-      (t) => t.type === 'expense' && t.week === inspectWeek
+      (t) =>
+        t.type === 'expense' &&
+        !isProtectedSavingTransaction(t) &&
+        t.week === inspectWeek
     );
     const totalWeekSpent = weekTrxs.reduce((s, t) => s + t.amount, 0);
     const map = new Map<string, number>();
