@@ -589,14 +589,10 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                   className={`grid gap-2.5 items-center p-3 rounded-xl bg-slate-50 border border-slate-100 ${
                     isMobileLayout
                       ? 'grid-cols-1'
-                      : 'grid-cols-1 md:grid-cols-12'
+                      : 'grid-cols-1 lg:grid-cols-[32px_138px_92px_132px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_36px]'
                   }`}
                 >
-                  <div
-                    className={`flex items-center justify-between ${
-                      isMobileLayout ? '' : 'md:col-span-1'
-                    }`}
-                  >
+                  <div className="flex items-center justify-between">
                     <span className="text-xs font-mono font-semibold text-slate-500">
                       #{idx + 1}
                     </span>
@@ -610,7 +606,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                       }
                       aria-label="Hapus baris"
                       className={`${
-                        isMobileLayout ? 'inline-flex' : 'inline-flex md:hidden'
+                        isMobileLayout ? 'inline-flex' : 'inline-flex lg:hidden'
                       } p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30`}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -619,6 +615,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
 
                   <input
                     type="date"
+                    aria-label={`Tanggal baris ${idx + 1}`}
                     value={row.date}
                     onChange={(e) =>
                       setBatchRows((prev) =>
@@ -627,12 +624,11 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                         )
                       )
                     }
-                    className={`${
-                      isMobileLayout ? '' : 'md:col-span-2'
-                    } w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono`}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono"
                   />
 
                   <select
+                    aria-label={`Tipe baris ${idx + 1}`}
                     value={row.type}
                     onChange={(e) => {
                       const nextType = e.target.value as TransactionType;
@@ -647,9 +643,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                         )
                       );
                     }}
-                    className={`${
-                      isMobileLayout ? '' : 'md:col-span-1'
-                    } w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs`}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs"
                   >
                     <option value="expense">Keluar</option>
                     <option value="income">Masuk</option>
@@ -666,12 +660,11 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                         )
                       )
                     }
-                    className={`${
-                      isMobileLayout ? '' : 'md:col-span-2'
-                    } w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono tabular-nums`}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono tabular-nums"
                   />
 
                   <select
+                    aria-label={`Kategori baris ${idx + 1}`}
                     value={activeCat?.id || ''}
                     onChange={(e) => {
                       const nextCat = rowCats.find(
@@ -690,9 +683,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                         )
                       );
                     }}
-                    className={`${
-                      isMobileLayout ? '' : 'md:col-span-2'
-                    } w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs`}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs"
                   >
                     {rowCats.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -701,8 +692,37 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                     ))}
                   </select>
 
+                  <select
+                    aria-label={`Sub-Kategori baris ${idx + 1}`}
+                    value={
+                      activeCat?.subcategories.some(
+                        (s) => s.id === row.subcategoryId
+                      )
+                        ? row.subcategoryId
+                        : ''
+                    }
+                    onChange={(e) =>
+                      setBatchRows((prev) =>
+                        prev.map((r) =>
+                          r.id === row.id
+                            ? { ...r, subcategoryId: e.target.value }
+                            : r
+                        )
+                      )
+                    }
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs"
+                  >
+                    <option value="">-- Tanpa Sub-Kategori --</option>
+                    {(activeCat?.subcategories || []).map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+
                   <input
                     type="text"
+                    aria-label={`Catatan baris ${idx + 1}`}
                     placeholder="Catatan / Merchant (opsional)"
                     value={row.notes}
                     onChange={(e) =>
@@ -712,14 +732,12 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                         )
                       )
                     }
-                    className={`${
-                      isMobileLayout ? '' : 'md:col-span-3'
-                    } w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs`}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs"
                   />
 
                   <div
                     className={`${
-                      isMobileLayout ? 'hidden' : 'hidden md:flex md:col-span-1 justify-end'
+                      isMobileLayout ? 'hidden' : 'hidden lg:flex justify-end'
                     }`}
                   >
                     <button
