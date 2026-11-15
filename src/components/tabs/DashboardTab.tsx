@@ -86,7 +86,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     }
 
     const currentBalance = profile.initialBalance + totalIncome - totalExpense;
-    const totalSaving = savingOut + savingIn;
+    const totalSaving = savingIn - savingOut;
 
     return {
       currentBalance,

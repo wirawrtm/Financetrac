@@ -69,6 +69,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
   const [type, setType] = useState<TransactionType>('expense');
   const [amountStr, setAmountStr] = useState('');
   const [date, setDate] = useState(todayIso);
+  const [periodMode, setPeriodMode] = useState<'auto' | 'Monthly'>('auto');
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
   const [notes, setNotes] = useState('');
@@ -103,10 +104,12 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
       setType(editingTransaction.type);
       setAmountStr(String(editingTransaction.amount));
       setDate(editingTransaction.date);
+      setPeriodMode(editingTransaction.week === 'Monthly' ? 'Monthly' : 'auto');
       setCategoryId(editingTransaction.categoryId);
       setSubcategoryId(editingTransaction.subcategoryId || '');
       setNotes(editingTransaction.notes);
     } else {
+      setPeriodMode('auto');
       const defaultCat = categories[0];
       if (!categoryId && defaultCat) {
         setCategoryId(defaultCat.id);
@@ -133,6 +136,8 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
     () => detectWeekFromDate(date, weeklyDateRanges),
     [date, weeklyDateRanges]
   );
+
+  const resolvedWeek = periodMode === 'Monthly' ? 'Monthly' : detectedWeek;
 
   const handleShortcutSaving = () => {
     const savingCat = categories.find(
@@ -179,7 +184,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
       date,
       amount,
       type,
-      week: detectedWeek,
+      week: resolvedWeek,
       categoryId: cat?.id || 'cat-other',
       categoryName: cat?.name || 'Lain-lain',
       subcategoryId: sub?.id,
@@ -193,6 +198,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
     if (!editingTransaction) {
       setAmountStr('');
       setNotes('');
+      setPeriodMode('auto');
     }
   };
 
@@ -350,7 +356,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
               </div>
             </div>
 
-            {/* Date & Detected Week */}
+            {/* Date & Detected Week / Monthly Override */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                 Tanggal Transaksi
@@ -362,10 +368,38 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
               />
-              <p className="mt-1 text-[11px] text-slate-500">
-                Otomatis masuk ke:{' '}
-                <strong className="text-slate-800">{detectedWeek}</strong>
-              </p>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[11px] text-slate-500">
+                  Otomatis masuk ke:{' '}
+                  <strong className="text-slate-800">
+                    {resolvedWeek === 'Monthly' ? 'Bulanan' : resolvedWeek}
+                  </strong>
+                </p>
+                <div className="inline-flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setPeriodMode('auto')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                      periodMode === 'auto'
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {detectedWeek}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPeriodMode('Monthly')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                      periodMode === 'Monthly'
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Bulanan
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Category + Saving Shortcut + Subcategory */}

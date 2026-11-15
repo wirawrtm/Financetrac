@@ -557,7 +557,7 @@ export default function App() {
       weeklyDateRanges: ranges,
       transactions: prev.transactions.map((t) => ({
         ...t,
-        week: detectWeekFromDate(t.date, ranges),
+        week: t.week === 'Monthly' ? 'Monthly' : detectWeekFromDate(t.date, ranges),
       })),
     }));
     notify(
@@ -581,7 +581,7 @@ export default function App() {
       weeklyDateRanges: ranges,
       transactions: prev.transactions.map((t) => ({
         ...t,
-        week: detectWeekFromDate(t.date, ranges),
+        week: t.week === 'Monthly' ? 'Monthly' : detectWeekFromDate(t.date, ranges),
       })),
     }));
   };
