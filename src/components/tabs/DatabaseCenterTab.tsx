@@ -83,7 +83,7 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
     'tables'
   );
   const [activeTable, setActiveTable] = useState<
-    'transactions' | 'categories' | 'budgets' | 'gallery' | 'profile'
+    'transactions' | 'categories' | 'budgets' | 'gallery'
   >('transactions');
   const [trxSearch, setTrxSearch] = useState('');
   const [diagLogs, setDiagLogs] = useState<DiagnosticLog[]>([]);
@@ -281,7 +281,6 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
                   { key: 'categories', label: 'Kategori' },
                   { key: 'budgets', label: 'Anggaran & Kalender' },
                   { key: 'gallery', label: 'Galeri' },
-                  { key: 'profile', label: 'Profil' },
                 ] as const
               ).map((t) => (
                 <button
@@ -354,7 +353,7 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
                             : 'text-emerald-700'
                         }`}
                       >
-                        {formatCurrency(t.amount, db.userProfile.currency, {
+                        {formatCurrency(t.amount, 'IDR', {
                           showSign: true,
                           type: t.type,
                         })}
@@ -455,7 +454,7 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
                         <td className="py-2 px-2 text-right font-mono tabular-nums">
                           {formatCurrency(
                             db.weeklyBudgets[wk] || 0,
-                            db.userProfile.currency
+                            'IDR'
                           )}
                         </td>
                       </tr>
@@ -501,41 +500,6 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
             </div>
           )}
 
-          {activeTable === 'profile' && (
-            <div
-              className={`grid gap-3 text-xs ${
-                isMobileLayout ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
-              }`}
-            >
-              <div className="p-3 rounded-xl bg-slate-50">
-                <span className="text-slate-500">Nama Pemilik</span>
-                <p className="mt-0.5 font-semibold text-slate-900">
-                  {db.userProfile.name}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50">
-                <span className="text-slate-500">Mata Uang</span>
-                <p className="mt-0.5 font-semibold text-slate-900">
-                  {db.userProfile.currency}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50">
-                <span className="text-slate-500">Saldo Awal</span>
-                <p className="mt-0.5 font-mono font-semibold text-slate-900 tabular-nums">
-                  {formatCurrency(
-                    db.userProfile.initialBalance,
-                    db.userProfile.currency
-                  )}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50">
-                <span className="text-slate-500">Nomor Kartu & Rekening</span>
-                <p className="mt-0.5 font-mono text-slate-900 break-words">
-                  {db.userProfile.cardNumber} · {db.userProfile.bankAccount}
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -589,7 +553,7 @@ export const DatabaseCenterTab: React.FC<DatabaseCenterTabProps> = ({
             </div>
             <p className="text-xs text-slate-500 leading-relaxed">
               Kosongkan seluruh tabel transaksi di Cloud Firestore tanpa
-              menghapus struktur kategori, anggaran, dan profil akun Anda.
+              menghapus struktur kategori dan anggaran Anda.
             </p>
             <div className="flex flex-wrap gap-2.5 pt-2">
               <button

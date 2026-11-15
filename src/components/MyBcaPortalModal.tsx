@@ -1,19 +1,14 @@
 import React from 'react';
-import { Copy, ExternalLink, Landmark, ShieldCheck, X } from 'lucide-react';
-import { UserProfile } from '../types/finance';
+import { ExternalLink, Landmark, ShieldCheck, X } from 'lucide-react';
 
 interface MyBcaPortalModalProps {
   open: boolean;
-  profile: UserProfile;
-  onCopyAccount: () => void;
   onGoToAutoPlot: () => void;
   onClose: () => void;
 }
 
 export const MyBcaPortalModal: React.FC<MyBcaPortalModalProps> = ({
   open,
-  profile,
-  onCopyAccount,
   onGoToAutoPlot,
   onClose,
 }) => {
@@ -52,24 +47,6 @@ export const MyBcaPortalModal: React.FC<MyBcaPortalModalProps> = ({
         </div>
 
         <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs text-slate-500">Rekening Terhubung</p>
-            <p className="mt-1 text-sm font-semibold text-slate-900">
-              {profile.bankAccount || 'Belum diatur'}
-            </p>
-            <p className="mt-0.5 text-xs font-mono text-slate-500">
-              Kartu: {profile.cardNumber || 'Belum diatur'}
-            </p>
-            <button
-              type="button"
-              onClick={onCopyAccount}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-800"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              Salin Info Rekening
-            </button>
-          </div>
-
           <div className="flex items-start gap-2.5 text-xs text-slate-600 leading-relaxed">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <p>

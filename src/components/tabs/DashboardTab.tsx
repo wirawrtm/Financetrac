@@ -11,7 +11,6 @@ import {
   DriveImageItem,
   TabKey,
   Transaction,
-  UserProfile,
   WeekKey,
   WeeklyBudgets,
   WeeklyDateRanges,
@@ -23,7 +22,10 @@ import {
   formatNumberID,
   formatShortDateTime,
 } from '../../utils/formatters';
-import { isProtectedSavingTransaction } from '../../db/dummyDb';
+import {
+  isProtectedSavingTransaction,
+  isSavingCategoryTransaction,
+} from '../../db/dummyDb';
 import { CategoryIcon } from '../CategoryIcon';
 import { LeatherWalletCard } from '../LeatherWalletCard';
 
@@ -32,11 +34,10 @@ interface DashboardTabProps {
   categories: Category[];
   weeklyBudgets: WeeklyBudgets;
   weeklyDateRanges: WeeklyDateRanges;
-  profile: UserProfile;
+  currency?: 'IDR' | 'USD';
   gallery: DriveImageItem[];
   isMobileLayout: boolean;
   onNavigateTab: (tab: TabKey) => void;
-  onOpenProfile: () => void;
   onOpenMyBca: () => void;
   onEditTransaction: (trx: Transaction) => void;
   onDeleteTransaction: (trx: Transaction) => void;
@@ -47,11 +48,10 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   categories,
   weeklyBudgets,
   weeklyDateRanges,
-  profile,
+  currency = 'IDR',
   gallery,
   isMobileLayout,
   onNavigateTab,
-  onOpenProfile,
   onOpenMyBca,
   onEditTransaction,
   onDeleteTransaction,
@@ -70,22 +70,24 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     let savingIn = 0;
 
     for (const t of transactions) {
-      const isSaving = isProtectedSavingTransaction(t);
+      if (isSavingCategoryTransaction(t)) {
+        if (isProtectedSavingTransaction(t)) {
+          if (t.type === 'income') savingIn += t.amount;
+          else savingOut += t.amount;
+        }
+        continue;
+      }
+
       if (t.type === 'income') {
         totalIncome += t.amount;
-        if (isSaving) savingIn += t.amount;
       } else {
         allExpense += t.amount;
-        if (isSaving) {
-          savingOut += t.amount;
-        } else {
-          totalExpense += t.amount;
-        }
+        totalExpense += t.amount;
       }
     }
 
-    const currentBalance = profile.initialBalance + totalIncome - allExpense;
-    const totalSaving = savingIn - savingOut;
+    const currentBalance = totalIncome - allExpense;
+    const totalSaving = savingOut - savingIn;
 
     return {
       currentBalance,
@@ -95,7 +97,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       savingOut,
       savingIn,
     };
-  }, [transactions, profile.initialBalance]);
+  }, [transactions]);
 
   // Weekly stats (Week 1-4)
   const weeklyStats = useMemo(() => {
@@ -110,9 +112,10 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       let expense = 0;
       for (const t of transactions) {
         if (t.week === week) {
+          if (isSavingCategoryTransaction(t)) continue;
           if (t.type === 'income') {
             income += t.amount;
-          } else if (!isProtectedSavingTransaction(t)) {
+          } else {
             expense += t.amount;
           }
         }
@@ -139,7 +142,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const selectedBudgetBreakdown = useMemo(() => {
     const filtered = transactions.filter((t) => {
       if (t.type !== 'expense') return false;
-      if (isProtectedSavingTransaction(t)) return false;
+      if (isSavingCategoryTransaction(t)) return false;
       if (selectedBudgetWeek === 'Monthly') return true;
       return t.week === selectedBudgetWeek;
     });
@@ -306,7 +309,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               budget={activeRunningStat?.budget ?? 0}
               remaining={activeRunningStat?.remaining ?? 0}
               spending={activeRunningStat?.expense ?? 0}
-              profile={profile}
+              currency={currency}
             />
           );
         })()}
@@ -398,7 +401,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                                     : 'text-slate-900'
                                 }`}
                               >
-                                {formatCurrency(trx.amount, profile.currency, {
+                                {formatCurrency(trx.amount, currency, {
                                   showSign: true,
                                   type: trx.type,
                                 })}
@@ -522,7 +525,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                           w.budget > 0 ? 'bg-slate-900' : 'bg-slate-200'
                         }`}
                         style={{ height: `${budgetHeight}px` }}
-                        title={`Budget: ${formatCurrency(w.budget, profile.currency)}`}
+                        title={`Budget: ${formatCurrency(w.budget, currency)}`}
                       />
                       <div
                         className={`relative z-10 ${
@@ -535,7 +538,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                           w.expense > 0 ? 'bg-[#D9463E]' : 'bg-rose-100'
                         }`}
                         style={{ height: `${outHeight}px` }}
-                        title={`Keluar: ${formatCurrency(w.expense, profile.currency)}`}
+                        title={`Keluar: ${formatCurrency(w.expense, currency)}`}
                       />
                     </div>
 
@@ -553,11 +556,11 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                           ? 'text-[#D9463E] font-semibold'
                           : 'text-slate-500'
                       }`}
-                      title={`Sisa anggaran: ${formatCurrency(w.remaining, profile.currency)}`}
+                      title={`Sisa anggaran: ${formatCurrency(w.remaining, currency)}`}
                     >
                       Sisa{' '}
                       {w.remaining < 0 ? '-' : ''}
-                      {formatCurrency(Math.abs(w.remaining), profile.currency, {
+                      {formatCurrency(Math.abs(w.remaining), currency, {
                         compact: true,
                       })}
                     </span>
@@ -578,11 +581,11 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       <span className="text-slate-600 tabular-nums">
                         <strong className="text-slate-900">{active.week}</strong>{' '}
                         · Budget{' '}
-                        {formatCurrency(active.budget, profile.currency, {
+                        {formatCurrency(active.budget, currency, {
                           compact: true,
                         })}{' '}
                         · Keluar{' '}
-                        {formatCurrency(active.expense, profile.currency, {
+                        {formatCurrency(active.expense, currency, {
                           compact: true,
                         })}{' '}
                         · Sisa{' '}
@@ -596,7 +599,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                           {active.remaining < 0 ? '-' : ''}
                           {formatCurrency(
                             Math.abs(active.remaining),
-                            profile.currency,
+                            currency,
                             { compact: true }
                           )}
                         </strong>
@@ -657,12 +660,12 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 <span className="text-xs font-mono tabular-nums text-slate-700">
                   {formatCurrency(
                     selectedBudgetBreakdown.totalSpent,
-                    profile.currency
+                    currency
                   )}{' '}
                   /{' '}
                   {formatCurrency(
                     selectedBudgetBreakdown.limit,
-                    profile.currency
+                    currency
                   )}
                 </span>
               </div>
@@ -690,11 +693,11 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 {selectedBudgetBreakdown.remaining >= 0
                   ? `Sisa anggaran: ${formatCurrency(
                       selectedBudgetBreakdown.remaining,
-                      profile.currency
+                      currency
                     )}`
                   : `Melebihi anggaran: ${formatCurrency(
                       Math.abs(selectedBudgetBreakdown.remaining),
-                      profile.currency
+                      currency
                     )}`}
               </p>
             </div>
@@ -746,7 +749,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                         </span>
                       </div>
                       <p className="mt-0.5 text-xs font-mono font-bold tabular-nums truncate">
-                        {formatCurrency(w.expense, profile.currency, {
+                        {formatCurrency(w.expense, currency, {
                           compact: true,
                         })}
                       </p>
@@ -775,7 +778,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                             : 'text-slate-400'
                         }`}
                       >
-                        / {formatCurrency(w.budget, profile.currency, { compact: true })}
+                        / {formatCurrency(w.budget, currency, { compact: true })}
                       </p>
                     </button>
                   );
@@ -882,7 +885,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                           </span>
                         </span>
                         <span className="font-mono tabular-nums text-slate-700 shrink-0 ml-auto">
-                          {formatCurrency(item.total, profile.currency)} ·{' '}
+                          {formatCurrency(item.total, currency)} ·{' '}
                           {formatNumberID(pctOfSpent)}%
                         </span>
                       </button>
@@ -928,7 +931,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                               <div className="flex items-center justify-between gap-1 text-[10px] font-mono tabular-nums text-slate-500">
                                 <span>{wk.replace('Week ', 'W')}</span>
                                 <strong className="font-semibold text-slate-700 truncate">
-                                  {formatCurrency(val, profile.currency, {
+                                  {formatCurrency(val, currency, {
                                     compact: true,
                                   })}
                                 </strong>
@@ -974,7 +977,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                                     <strong className="font-semibold text-slate-900">
                                       {formatCurrency(
                                         sub.total,
-                                        profile.currency
+                                        currency
                                       )}
                                     </strong>{' '}
                                     · {formatNumberID(subPctOfCat)}%
@@ -1040,7 +1043,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                                           >
                                             {formatCurrency(
                                               subWkVal,
-                                              profile.currency,
+                                              currency,
                                               { compact: true }
                                             )}
                                           </span>

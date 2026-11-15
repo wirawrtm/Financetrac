@@ -15,7 +15,6 @@ import {
   CustomCalendarPeriod,
   DriveImageItem,
   Transaction,
-  UserProfile,
   WeekKey,
   WeeklyDateRanges,
 } from '../../types/finance';
@@ -26,6 +25,7 @@ import {
   formatNumberID,
   formatShortDateTime,
 } from '../../utils/formatters';
+import { isSavingCategoryTransaction } from '../../db/dummyDb';
 import { CategoryIcon } from '../CategoryIcon';
 
 interface HistoryTabProps {
@@ -33,7 +33,7 @@ interface HistoryTabProps {
   categories: Category[];
   weeklyDateRanges: WeeklyDateRanges;
   customCalendarPeriod: CustomCalendarPeriod;
-  profile: UserProfile;
+  currency?: 'IDR' | 'USD';
   gallery: DriveImageItem[];
   isMobileLayout: boolean;
   onUpdateCustomCalendar: (period: CustomCalendarPeriod) => void;
@@ -47,7 +47,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   categories,
   weeklyDateRanges,
   customCalendarPeriod,
-  profile,
+  currency = 'IDR',
   gallery,
   isMobileLayout,
   onUpdateCustomCalendar,
@@ -250,6 +250,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     let income = 0;
     let expense = 0;
     for (const t of filteredTransactions) {
+      if (isSavingCategoryTransaction(t)) continue;
       if (t.type === 'income') income += t.amount;
       else expense += t.amount;
     }
@@ -299,34 +300,59 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              onUpdateCustomCalendar({
-                ...customCalendarPeriod,
-                isActive: !customCalendarPeriod.isActive,
-                updatedAt: Date.now(),
-              })
-            }
-            className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors whitespace-nowrap ${
-              customCalendarPeriod.isActive
-                ? 'bg-slate-900 text-white border-slate-900'
-                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            {customCalendarPeriod.isActive
-              ? 'Periode Kustom: Aktif'
-              : 'Periode Kustom: Nonaktif'}
-          </button>
-          <button
-            type="button"
-            onClick={openCustomModal}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-semibold transition-colors whitespace-nowrap"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            Atur Kalender Kustom
-          </button>
+        <div
+          className={`flex flex-col gap-2 ${
+            isMobileLayout ? 'items-start' : 'items-start sm:items-end'
+          }`}
+        >
+          <div className="max-w-full flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto">
+            {(['ALL', 'Week 1', 'Week 2', 'Week 3', 'Week 4'] as const).map(
+              (w) => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => setWeekFilter(w)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                    weekFilter === w
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {w === 'ALL' ? 'Semua' : w.replace('Week ', 'W')}
+                </button>
+              )
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                onUpdateCustomCalendar({
+                  ...customCalendarPeriod,
+                  isActive: !customCalendarPeriod.isActive,
+                  updatedAt: Date.now(),
+                })
+              }
+              className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors whitespace-nowrap ${
+                customCalendarPeriod.isActive
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              {customCalendarPeriod.isActive
+                ? 'Periode Kustom: Aktif'
+                : 'Periode Kustom: Nonaktif'}
+            </button>
+            <button
+              type="button"
+              onClick={openCustomModal}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-semibold transition-colors whitespace-nowrap"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Atur Kalender Kustom
+            </button>
+          </div>
         </div>
       </div>
 
@@ -339,13 +365,13 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
           <p className="text-xs text-slate-500 truncate">Pemasukan Periode</p>
           <p className="mt-1 text-sm sm:text-base font-bold text-slate-900 tabular-nums truncate">
-            {formatCurrency(periodStats.income, profile.currency)}
+            {formatCurrency(periodStats.income, currency)}
           </p>
         </div>
         <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
           <p className="text-xs text-slate-500 truncate">Pengeluaran Periode</p>
           <p className="mt-1 text-sm sm:text-base font-bold text-[#D9463E] tabular-nums truncate">
-            {formatCurrency(periodStats.expense, profile.currency)}
+            {formatCurrency(periodStats.expense, currency)}
           </p>
         </div>
         <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
@@ -356,7 +382,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             }`}
           >
             {periodStats.net >= 0 ? '+ ' : '- '}
-            {formatCurrency(Math.abs(periodStats.net), profile.currency)}
+            {formatCurrency(Math.abs(periodStats.net), currency)}
           </p>
         </div>
         <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
@@ -513,25 +539,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="max-w-full flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto">
-                {(['ALL', 'Week 1', 'Week 2', 'Week 3', 'Week 4'] as const).map(
-                  (w) => (
-                    <button
-                      key={w}
-                      type="button"
-                      onClick={() => setWeekFilter(w)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                        weekFilter === w
-                          ? 'bg-white text-slate-900 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      {w === 'ALL' ? 'Semua' : w.replace('Week ', 'W')}
-                    </button>
-                  )
-                )}
-              </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
 
               <div className="max-w-full flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto">
                 {(
@@ -615,7 +623,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                                     : 'text-slate-900'
                                 }`}
                               >
-                                {formatCurrency(trx.amount, profile.currency, {
+                                {formatCurrency(trx.amount, currency, {
                                   showSign: true,
                                   type: trx.type,
                                 })}

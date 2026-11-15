@@ -2,7 +2,7 @@
   "entities": {
     "UserWorkspace": {
       "title": "UserWorkspace",
-      "description": "Pengaturan profil akun, anggaran mingguan/bulanan, rentang tanggal minggu, dan periode kalender kustom milik pengguna.",
+      "description": "Pengaturan anggaran mingguan/bulanan, rentang tanggal minggu, dan periode kalender kustom.",
       "type": "object",
       "properties": {
         "ownerId": {
@@ -10,10 +10,6 @@
           "maxLength": 128,
           "pattern": "^[a-zA-Z0-9_\\-]+$",
           "description": "UID pemilik dokumen Firebase Auth"
-        },
-        "userProfile": {
-          "type": "object",
-          "description": "Profil tampilan dompet dan preferensi mata uang"
         },
         "weeklyBudgets": {
           "type": "object",
@@ -40,7 +36,6 @@
       },
       "required": [
         "ownerId",
-        "userProfile",
         "weeklyBudgets",
         "weeklyDateRanges",
         "customCalendarPeriod",

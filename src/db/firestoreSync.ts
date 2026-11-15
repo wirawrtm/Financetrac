@@ -19,7 +19,6 @@ import {
   DriveImageItem,
   DummyDatabase,
   Transaction,
-  UserProfile,
   WeekKey,
   WeeklyBudgets,
   WeeklyDateRanges,
@@ -65,17 +64,6 @@ function normalizeIsoDate(value: unknown, fallback = '2026-11-13'): string {
 }
 
 function buildWorkspaceFields(dbState: DummyDatabase) {
-  const userProfile: UserProfile = {
-    name: clampString(dbState.userProfile.name, 100, 'Pengguna').trim() || 'Pengguna',
-    avatarUrl: clampString(dbState.userProfile.avatarUrl, 1000),
-    cardNumber: clampString(dbState.userProfile.cardNumber, 60),
-    currency: dbState.userProfile.currency === 'USD' ? 'USD' : 'IDR',
-    initialBalance: Number.isFinite(Number(dbState.userProfile.initialBalance))
-      ? Number(dbState.userProfile.initialBalance)
-      : 0,
-    bankAccount: clampString(dbState.userProfile.bankAccount, 120),
-  };
-
   const weeklyBudgets: WeeklyBudgets = {
     'Week 1': clampNonNegNumber(dbState.weeklyBudgets['Week 1']),
     'Week 2': clampNonNegNumber(dbState.weeklyBudgets['Week 2']),
@@ -109,7 +97,6 @@ function buildWorkspaceFields(dbState: DummyDatabase) {
   };
 
   return {
-    userProfile,
     weeklyBudgets,
     weeklyDateRanges,
     customCalendarPeriod,
@@ -229,10 +216,15 @@ export async function pushFullDatabaseToCloud(
     const wsFields = buildWorkspaceFields(dbState);
 
     if (workspaceExisted) {
-      await updateDoc(workspaceRef, {
+      const existingWsData = existingSnap.data() || {};
+      const wsUpdatePayload: Record<string, unknown> = {
         ...wsFields,
         updatedAt: serverTimestamp(),
-      });
+      };
+      if ('userProfile' in existingWsData) {
+        wsUpdatePayload.userProfile = deleteField();
+      }
+      await updateDoc(workspaceRef, wsUpdatePayload);
     } else {
       await setDoc(workspaceRef, {
         ownerId: userId,
@@ -425,7 +417,6 @@ export async function syncDiffToFirestore(
     }
 
     const workspaceChanged =
-      JSON.stringify(prev.userProfile) !== JSON.stringify(next.userProfile) ||
       JSON.stringify(prev.weeklyBudgets) !== JSON.stringify(next.weeklyBudgets) ||
       JSON.stringify(prev.weeklyDateRanges) !==
         JSON.stringify(next.weeklyDateRanges) ||
@@ -657,7 +648,6 @@ export function initializeAndSubscribeCloud(
   cleanInitialDb: DummyDatabase,
   callbacks: {
     onWorkspaceUpdate: (patch: {
-      userProfile: UserProfile;
       weeklyBudgets: WeeklyBudgets;
       weeklyDateRanges: WeeklyDateRanges;
       customCalendarPeriod: CustomCalendarPeriod;
@@ -760,8 +750,6 @@ export function initializeAndSubscribeCloud(
 
   const emitWorkspaceData = (d: Record<string, unknown>) => {
     callbacks.onWorkspaceUpdate({
-      userProfile:
-        (d.userProfile as UserProfile) || cleanInitialDb.userProfile,
       weeklyBudgets:
         (d.weeklyBudgets as WeeklyBudgets) || cleanInitialDb.weeklyBudgets,
       weeklyDateRanges:
@@ -819,7 +807,6 @@ export function initializeAndSubscribeCloud(
         if (!snap.metadata.fromCache && !didBootstrap) {
           didBootstrap = true;
           callbacks.onWorkspaceUpdate({
-            userProfile: cleanInitialDb.userProfile,
             weeklyBudgets: cleanInitialDb.weeklyBudgets,
             weeklyDateRanges: cleanInitialDb.weeklyDateRanges,
             customCalendarPeriod: cleanInitialDb.customCalendarPeriod,
@@ -843,9 +830,7 @@ export function initializeAndSubscribeCloud(
 
       if (!didCleanWorkspace && !snap.metadata.fromCache) {
         didCleanWorkspace = true;
-        const hasLegacyDummyProfile =
-          d.userProfile?.name === 'Raka Pratama' &&
-          d.userProfile?.bankAccount === 'BCA Tahapan Xpresi · 5210884912';
+        const hasLegacyProfileField = 'userProfile' in d;
         const hasLegacyDummyBudgets =
           d.weeklyBudgets?.['Week 1'] === 2000000 &&
           d.weeklyBudgets?.['Week 2'] === 1500000 &&
@@ -853,19 +838,12 @@ export function initializeAndSubscribeCloud(
           d.weeklyBudgets?.['Week 4'] === 1500000 &&
           d.weeklyBudgets?.Monthly === 6500000;
 
-        if (hasLegacyDummyProfile || hasLegacyDummyBudgets) {
+        if (hasLegacyProfileField || hasLegacyDummyBudgets) {
           const wsPatch: Record<string, unknown> = {
             updatedAt: serverTimestamp(),
           };
-          if (hasLegacyDummyProfile) {
-            wsPatch.userProfile = {
-              name: cleanInitialDb.userProfile.name || 'Pengguna',
-              avatarUrl: cleanInitialDb.userProfile.avatarUrl || '',
-              cardNumber: '',
-              currency: d.userProfile?.currency === 'USD' ? 'USD' : 'IDR',
-              initialBalance: 0,
-              bankAccount: '',
-            };
+          if (hasLegacyProfileField) {
+            wsPatch.userProfile = deleteField();
           }
           if (hasLegacyDummyBudgets) {
             wsPatch.weeklyBudgets = {

@@ -8,7 +8,7 @@ import {
   WeeklyDateRanges,
 } from '../../types/finance';
 import { formatCurrency, formatNumberID } from '../../utils/formatters';
-import { isProtectedSavingTransaction } from '../../db/dummyDb';
+import { isSavingCategoryTransaction } from '../../db/dummyDb';
 import { ThousandInput } from '../ThousandInput';
 
 interface BudgetTabProps {
@@ -76,7 +76,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
         .filter(
           (t) =>
             t.type === 'expense' &&
-            !isProtectedSavingTransaction(t) &&
+            !isSavingCategoryTransaction(t) &&
             (wk === 'Monthly' ? true : t.week === wk)
         )
         .reduce((sum, t) => sum + t.amount, 0);
@@ -91,7 +91,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
     const weekTrxs = transactions.filter(
       (t) =>
         t.type === 'expense' &&
-        !isProtectedSavingTransaction(t) &&
+        !isSavingCategoryTransaction(t) &&
         t.week === inspectWeek
     );
     const totalWeekSpent = weekTrxs.reduce((s, t) => s + t.amount, 0);

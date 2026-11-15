@@ -61,15 +61,6 @@ export interface CustomCalendarPeriod {
   updatedAt: number;
 }
 
-export interface UserProfile {
-  name: string;
-  avatarUrl: string;
-  cardNumber: string;
-  currency: 'IDR' | 'USD';
-  initialBalance: number;
-  bankAccount: string;
-}
-
 export interface DriveImageItem {
   id: string;
   name: string;
@@ -89,7 +80,6 @@ export interface DummyDatabase {
   weeklyBudgets: WeeklyBudgets;
   weeklyDateRanges: WeeklyDateRanges;
   customCalendarPeriod: CustomCalendarPeriod;
-  userProfile: UserProfile;
   gallery: DriveImageItem[];
 }
 

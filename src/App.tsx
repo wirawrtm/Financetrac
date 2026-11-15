@@ -15,8 +15,6 @@ import {
   ShieldCheck,
   Smartphone,
   Sparkles,
-  User,
-  Wallet,
   X,
 } from 'lucide-react';
 import { PRIMARY_USER_EMAIL, PRIMARY_WORKSPACE_UID } from './firebase';
@@ -41,14 +39,12 @@ import {
   TabKey,
   ToastMessage,
   Transaction,
-  UserProfile,
   WeeklyBudgets,
   WeeklyDateRanges,
 } from './types/finance';
 import { detectWeekFromDate, generateId } from './utils/formatters';
 import { ConfirmModal } from './components/ConfirmModal';
 import { MyBcaPortalModal } from './components/MyBcaPortalModal';
-import { ProfileModal } from './components/ProfileModal';
 import { ToastContainer } from './components/ToastContainer';
 import { AutoPlotTab } from './components/tabs/AutoPlotTab';
 import { BudgetTab } from './components/tabs/BudgetTab';
@@ -67,7 +63,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { key: 'dashboard', label: 'Beranda', shortLabel: 'Dompet', icon: Wallet },
+  { key: 'dashboard', label: 'Home', shortLabel: 'Home', icon: Home },
   {
     key: 'history',
     label: 'Riwayat & Kalender',
@@ -124,7 +120,6 @@ export default function App() {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   // Modals & Toasts
-  const [profileOpen, setProfileOpen] = useState(false);
   const [myBcaOpen, setMyBcaOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [confirmState, setConfirmState] = useState<{
@@ -199,10 +194,7 @@ export default function App() {
       setDb(next);
     };
 
-    const cleanSeed = createEmptyDatabase({
-      name: 'Pengguna',
-      avatarUrl: '',
-    });
+    const cleanSeed = createEmptyDatabase();
 
     const unsubscribeCloud = initializeAndSubscribeCloud(
       PRIMARY_WORKSPACE_UID,
@@ -212,7 +204,6 @@ export default function App() {
           if (cancelled) return;
           applyCloudPatch((prev) => ({
             ...prev,
-            userProfile: patch.userProfile,
             weeklyBudgets: patch.weeklyBudgets,
             weeklyDateRanges: patch.weeklyDateRanges,
             customCalendarPeriod: patch.customCalendarPeriod,
@@ -642,18 +633,13 @@ export default function App() {
     notify('success', 'Tautan ikon kategori diperbarui');
   };
 
-  // --- Profile & Database Clear / Import ---
-  const handleSaveProfile = (profile: UserProfile) => {
-    commitDb((prev) => ({ ...prev, userProfile: profile }));
-    notify('success', 'Profil & parameter akun disimpan');
-  };
-
+  // --- Database Clear / Import ---
   const handleRequestClearTransactions = () => {
     setConfirmState({
       open: true,
       title: 'Kosongkan Tabel Transaksi?',
       description:
-        'Semua catatan transaksi akan dihapus, namun kategori, anggaran, dan profil Anda tetap dipertahankan.',
+        'Semua catatan transaksi akan dihapus, namun kategori dan anggaran Anda tetap dipertahankan.',
       confirmLabel: 'Kosongkan Transaksi',
       onConfirm: () => {
         commitDb((prev) => clearTransactionsOnly(prev));
@@ -681,15 +667,6 @@ export default function App() {
     }
   };
 
-  const handleCopyMyBcaAccount = async () => {
-    try {
-      await navigator.clipboard.writeText(db.userProfile.bankAccount);
-      notify('success', 'Info rekening disalin');
-    } catch {
-      notify('warning', 'Salin manual dari kotak info rekening');
-    }
-  };
-
   const activeNavItem = NAV_ITEMS.find((n) => n.key === activeTab) || NAV_ITEMS[0];
 
   const renderActiveTabContent = () => {
@@ -701,11 +678,10 @@ export default function App() {
             categories={db.categories}
             weeklyBudgets={db.weeklyBudgets}
             weeklyDateRanges={db.weeklyDateRanges}
-            profile={db.userProfile}
+            currency="IDR"
             gallery={db.gallery}
             isMobileLayout={isMobileLayout}
             onNavigateTab={navigateToTab}
-            onOpenProfile={() => setProfileOpen(true)}
             onOpenMyBca={() => setMyBcaOpen(true)}
             onEditTransaction={handleStartEditTransaction}
             onDeleteTransaction={handleRequestDeleteTransaction}
@@ -718,7 +694,7 @@ export default function App() {
             categories={db.categories}
             weeklyDateRanges={db.weeklyDateRanges}
             customCalendarPeriod={db.customCalendarPeriod}
-            profile={db.userProfile}
+            currency="IDR"
             gallery={db.gallery}
             isMobileLayout={isMobileLayout}
             onUpdateCustomCalendar={handleUpdateCustomCalendar}
@@ -732,7 +708,7 @@ export default function App() {
           <InputTransactionTab
             categories={db.categories}
             weeklyDateRanges={db.weeklyDateRanges}
-            currency={db.userProfile.currency}
+            currency="IDR"
             editingTransaction={editingTransaction}
             isMobileLayout={isMobileLayout}
             onCancelEdit={() => {
@@ -762,7 +738,7 @@ export default function App() {
             categories={db.categories}
             weeklyBudgets={db.weeklyBudgets}
             weeklyDateRanges={db.weeklyDateRanges}
-            currency={db.userProfile.currency}
+            currency="IDR"
             isMobileLayout={isMobileLayout}
             onSaveBudgetsAndRanges={handleSaveBudgetsAndRanges}
           />
@@ -802,7 +778,7 @@ export default function App() {
             cloudUser={{
               uid: PRIMARY_WORKSPACE_UID,
               email: PRIMARY_USER_EMAIL,
-              displayName: db.userProfile.name,
+              displayName: 'DompetSaku',
             }}
             isCloudBusy={isCloudBusy}
             onSyncNowToCloud={handleSyncNowToCloud}
@@ -814,14 +790,14 @@ export default function App() {
     }
   };
 
-  // Mobile Dock Items (4 primary tabs mirroring the floating dark pill dock in the reference screenshot)
+  // Mobile Dock Items (4 primary tabs mirroring the floating dark pill dock)
   const mobileDockTabs: {
     key: TabKey;
     label: string;
     icon: React.FC<{ className?: string }>;
   }[] = [
-    { key: 'history', label: 'Riwayat', icon: Home },
-    { key: 'dashboard', label: 'Dompet', icon: Wallet },
+    { key: 'dashboard', label: 'Home', icon: Home },
+    { key: 'history', label: 'Riwayat', icon: CalendarDays },
     { key: 'budget', label: 'Anggaran', icon: BarChart3 },
     { key: 'autoplot', label: 'AI Plot', icon: Sparkles },
   ];
@@ -844,17 +820,8 @@ export default function App() {
         onCancel={() => setConfirmState((s) => ({ ...s, open: false }))}
       />
 
-      <ProfileModal
-        open={profileOpen}
-        profile={db.userProfile}
-        onSave={handleSaveProfile}
-        onClose={() => setProfileOpen(false)}
-      />
-
       <MyBcaPortalModal
         open={myBcaOpen}
-        profile={db.userProfile}
-        onCopyAccount={handleCopyMyBcaAccount}
         onGoToAutoPlot={() => navigateToTab('autoplot')}
         onClose={() => setMyBcaOpen(false)}
       />
@@ -919,17 +886,7 @@ export default function App() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setEditingTransaction(null);
-                setActiveTab('input');
-              }}
-              aria-label="Tambah transaksi baru"
-              className="w-11 h-11 rounded-full bg-slate-200/70 hover:bg-slate-300/70 flex items-center justify-center text-slate-900 transition-colors shrink-0"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
+            <div className="w-11 h-11 shrink-0" aria-hidden="true" />
           </header>
 
           {/* Mobile Scrollable Content */}
@@ -937,7 +894,7 @@ export default function App() {
             {renderActiveTabContent()}
           </main>
 
-          {/* Mobile Slide-Over Drawer for all 8 tabs & Profile */}
+          {/* Mobile Slide-Over Drawer for all 8 tabs */}
           {mobileDrawerOpen && (
             <div className="fixed inset-0 z-50 flex">
               <div
@@ -996,17 +953,6 @@ export default function App() {
                       Publik
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileDrawerOpen(false);
-                      setProfileOpen(true);
-                    }}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-sm font-medium text-slate-800"
-                  >
-                    <User className="w-4 h-4 text-slate-500" />
-                    <span className="truncate">{db.userProfile.name}</span>
-                  </button>
                   {isNarrowScreen && (
                     <button
                       type="button"
@@ -1025,15 +971,15 @@ export default function App() {
             </div>
           )}
 
-          {/* Floating Dark Pill Bottom Dock (directly styled after reference image) */}
+          {/* Floating Dark Pill Bottom Dock + Separate Right (+) Button */}
           <div
             className={`${
               isNarrowScreen ? 'fixed bottom-3 inset-x-3' : 'absolute bottom-4 inset-x-3'
-            } z-40 flex justify-center pointer-events-none`}
+            } z-40 flex items-center justify-center gap-2 pointer-events-none`}
           >
             <nav
               aria-label="Navigasi bawah"
-              className="pointer-events-auto max-w-full overflow-x-auto flex items-center gap-0.5 sm:gap-1 rounded-full bg-[#1C1C1E]/95 backdrop-blur-md px-1.5 sm:px-2 py-1.5 shadow-[0_12px_28px_-6px_rgba(0,0,0,0.4)] border border-white/10"
+              className="pointer-events-auto min-w-0 max-w-full overflow-x-auto flex items-center gap-0.5 sm:gap-1 rounded-full bg-[#1C1C1E]/95 backdrop-blur-md px-1.5 sm:px-2 py-1.5 shadow-[0_12px_28px_-6px_rgba(0,0,0,0.4)] border border-white/10"
             >
               {mobileDockTabs.map((item) => {
                 const Icon = item.icon;
@@ -1043,7 +989,9 @@ export default function App() {
                     key={item.key}
                     type="button"
                     onClick={() => navigateToTab(item.key)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+                    className={`flex items-center gap-1.5 ${
+                      active ? 'px-3' : 'px-2.5 sm:px-3'
+                    } py-2 rounded-full text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
                       active
                         ? 'bg-[#3A3A3C] text-white shadow-xs'
                         : 'text-zinc-400 hover:text-white'
@@ -1054,16 +1002,23 @@ export default function App() {
                   </button>
                 );
               })}
-
-              <button
-                type="button"
-                onClick={() => setProfileOpen(true)}
-                aria-label="Profil akun"
-                className="flex items-center justify-center w-9 h-9 rounded-full text-zinc-400 hover:text-white transition-colors shrink-0"
-              >
-                <User className="w-4 h-4" />
-              </button>
             </nav>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEditingTransaction(null);
+                setActiveTab('input');
+              }}
+              aria-label="Tambah transaksi baru"
+              className={`pointer-events-auto w-12 h-12 rounded-full flex items-center justify-center shadow-[0_12px_28px_-6px_rgba(0,0,0,0.4)] border transition-colors shrink-0 ${
+                activeTab === 'input'
+                  ? 'bg-slate-900 text-white border-white/25'
+                  : 'bg-[#1C1C1E]/95 hover:bg-[#2C2C2E] text-white border-white/10'
+              }`}
+            >
+              <Plus className="w-5 h-5" />
+            </button>
           </div>
         </div>
       ) : (
@@ -1101,7 +1056,7 @@ export default function App() {
               </nav>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 space-y-2">
+            <div className="pt-4 border-t border-slate-100">
               <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-900 text-xs">
                 <span className="inline-flex items-center gap-2 min-w-0">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
@@ -1114,23 +1069,6 @@ export default function App() {
                   Publik
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setProfileOpen(true)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold shrink-0">
-                  {db.userProfile.name.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-slate-900 truncate">
-                    {db.userProfile.name}
-                  </p>
-                  <p className="text-[11px] text-slate-500 truncate">
-                    {db.userProfile.currency} · Profil Akun
-                  </p>
-                </div>
-              </button>
             </div>
           </aside>
 

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { UserProfile } from '../types/finance';
 import { formatCurrency } from '../utils/formatters';
 
 interface LeatherWalletCardProps {
@@ -13,7 +12,7 @@ interface LeatherWalletCardProps {
   budget: number;
   remaining: number;
   spending: number;
-  profile: UserProfile;
+  currency?: 'IDR' | 'USD';
 }
 
 export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
@@ -26,7 +25,7 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
   budget,
   remaining,
   spending,
-  profile,
+  currency = 'IDR',
 }) => {
   const [hidden, setHidden] = useState(false);
   const [primaryCard, setPrimaryCard] = useState<'weekly' | 'monthly'>('weekly');
@@ -63,7 +62,7 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
                 ? '••••••••'
                 : `${remaining < 0 ? '-' : ''}${formatCurrency(
                     Math.abs(remaining),
-                    profile.currency
+                    currency
                   )}`}
             </span>
           </button>
@@ -80,7 +79,7 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
             <span className="mt-0.5 text-xs text-blue-100/95 font-semibold tabular-nums shrink-0">
               {hidden
                 ? '••••••••'
-                : formatCurrency(monthlySaving, profile.currency)}
+                : formatCurrency(monthlySaving, currency)}
             </span>
           </button>
         )}
@@ -126,7 +125,7 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
               <p className="mt-1 text-xl sm:text-[28px] font-bold tracking-tight text-white tabular-nums leading-tight truncate">
                 {hidden
                   ? '••••••••••'
-                  : formatCurrency(activeSpending, profile.currency)}
+                  : formatCurrency(activeSpending, currency)}
               </p>
             </div>
 
@@ -167,7 +166,7 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
                 <p className="mt-0.5 text-xs sm:text-sm font-semibold text-white tabular-nums truncate">
                   {hidden
                     ? '••••••'
-                    : formatCurrency(activeBudget, profile.currency, {
+                    : formatCurrency(activeBudget, currency, {
                         compact: true,
                       })}
                 </p>
@@ -183,7 +182,7 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
                 <p className="mt-0.5 text-xs sm:text-sm font-semibold text-white tabular-nums truncate">
                   {hidden
                     ? '••••••'
-                    : formatCurrency(activeSpending, profile.currency, {
+                    : formatCurrency(activeSpending, currency, {
                         compact: true,
                       })}
                 </p>
@@ -214,12 +213,12 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
                 {hidden
                   ? '••••••'
                   : isMonthlyPrimary
-                  ? formatCurrency(monthlySaving, profile.currency, {
+                  ? formatCurrency(monthlySaving, currency, {
                       compact: true,
                     })
                   : `${activeRemaining < 0 ? '-' : ''}${formatCurrency(
                       Math.abs(activeRemaining),
-                      profile.currency,
+                      currency,
                       { compact: true }
                     )}`}
               </p>

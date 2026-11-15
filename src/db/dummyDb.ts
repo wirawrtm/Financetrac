@@ -5,7 +5,6 @@ import {
   DummyDatabase,
   Subcategory,
   Transaction,
-  UserProfile,
   WeeklyBudgets,
   WeeklyDateRanges,
 } from '../types/finance';
@@ -26,16 +25,22 @@ export function isProtectedSavingSubcategory(
   );
 }
 
+export function isSavingCategoryTransaction(
+  t: Pick<Transaction, 'categoryId' | 'categoryName'>
+): boolean {
+  return (
+    t.categoryId === 'cat-saving' ||
+    t.categoryName.trim().toLowerCase() === 'saving'
+  );
+}
+
 export function isProtectedSavingTransaction(
   t: Pick<
     Transaction,
     'categoryId' | 'categoryName' | 'subcategoryId' | 'subcategoryName'
   >
 ): boolean {
-  const isSavingCat =
-    t.categoryId === 'cat-saving' ||
-    t.categoryName.trim().toLowerCase() === 'saving';
-  if (!isSavingCat) return false;
+  if (!isSavingCategoryTransaction(t)) return false;
   return (
     t.subcategoryId === PROTECTED_SAVING_SUBCATEGORY_ID ||
     (t.subcategoryName || '').trim().toLowerCase() === 'saving'
@@ -238,15 +243,6 @@ function buildCurrentMonthRanges(): {
   return { weeklyDateRanges, customCalendarPeriod };
 }
 
-export const EMPTY_USER_PROFILE: UserProfile = {
-  name: 'Pengguna',
-  avatarUrl: '',
-  cardNumber: '',
-  currency: 'IDR',
-  initialBalance: 0,
-  bankAccount: '',
-};
-
 export const DEFAULT_GALLERY: DriveImageItem[] = [];
 
 export function clearLegacyDummyStorage(): void {
@@ -257,10 +253,7 @@ export function clearLegacyDummyStorage(): void {
   }
 }
 
-export function createEmptyDatabase(seedProfile?: {
-  name?: string | null;
-  avatarUrl?: string | null;
-}): DummyDatabase {
+export function createEmptyDatabase(): DummyDatabase {
   const { weeklyDateRanges, customCalendarPeriod } = buildCurrentMonthRanges();
   return {
     version: 1,
@@ -270,11 +263,6 @@ export function createEmptyDatabase(seedProfile?: {
     weeklyBudgets: structuredClone(EMPTY_WEEKLY_BUDGETS),
     weeklyDateRanges,
     customCalendarPeriod,
-    userProfile: {
-      ...structuredClone(EMPTY_USER_PROFILE),
-      name: seedProfile?.name?.trim() || EMPTY_USER_PROFILE.name,
-      avatarUrl: seedProfile?.avatarUrl?.trim() || '',
-    },
     gallery: structuredClone(DEFAULT_GALLERY),
   };
 }
@@ -323,7 +311,6 @@ export function validateImportedDatabase(rawText: string): DummyDatabase {
     weeklyBudgets: parsed.weeklyBudgets ?? structuredClone(EMPTY_WEEKLY_BUDGETS),
     weeklyDateRanges: parsed.weeklyDateRanges ?? weeklyDateRanges,
     customCalendarPeriod: parsed.customCalendarPeriod ?? customCalendarPeriod,
-    userProfile: parsed.userProfile ?? structuredClone(EMPTY_USER_PROFILE),
     gallery: Array.isArray(parsed.gallery) ? parsed.gallery : [],
   };
 }

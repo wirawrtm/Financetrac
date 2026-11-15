@@ -36,19 +36,10 @@ service cloud.firestore {
     }
 
     function isValidUserWorkspace(data) {
-      return data.keys().hasAll(['ownerId', 'userProfile', 'weeklyBudgets', 'weeklyDateRanges', 'customCalendarPeriod', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['ownerId', 'userProfile', 'weeklyBudgets', 'weeklyDateRanges', 'customCalendarPeriod', 'createdAt', 'updatedAt'])
+      return data.keys().hasAll(['ownerId', 'weeklyBudgets', 'weeklyDateRanges', 'customCalendarPeriod', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'weeklyBudgets', 'weeklyDateRanges', 'customCalendarPeriod', 'createdAt', 'updatedAt'])
         && isValidId(data.ownerId)
         && data.ownerId == primaryWorkspaceId()
-        && data.userProfile is map
-        && data.userProfile.keys().hasAll(['name', 'avatarUrl', 'cardNumber', 'currency', 'initialBalance', 'bankAccount'])
-        && data.userProfile.keys().hasOnly(['name', 'avatarUrl', 'cardNumber', 'currency', 'initialBalance', 'bankAccount'])
-        && data.userProfile.name is string && data.userProfile.name.size() >= 1 && data.userProfile.name.size() <= 100
-        && data.userProfile.avatarUrl is string && data.userProfile.avatarUrl.size() <= 1000
-        && data.userProfile.cardNumber is string && data.userProfile.cardNumber.size() <= 60
-        && data.userProfile.currency in ['IDR', 'USD']
-        && (data.userProfile.initialBalance is int || data.userProfile.initialBalance is float)
-        && data.userProfile.bankAccount is string && data.userProfile.bankAccount.size() <= 120
         && data.weeklyBudgets is map
         && data.weeklyBudgets.keys().hasAll(['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Monthly'])
         && data.weeklyBudgets.keys().hasOnly(['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Monthly'])
