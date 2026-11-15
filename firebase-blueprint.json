@@ -1,0 +1,283 @@
+{
+  "entities": {
+    "UserWorkspace": {
+      "title": "UserWorkspace",
+      "description": "Pengaturan profil akun, anggaran mingguan/bulanan, rentang tanggal minggu, dan periode kalender kustom milik pengguna.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID pemilik dokumen Firebase Auth"
+        },
+        "userProfile": {
+          "type": "object",
+          "description": "Profil tampilan dompet dan preferensi mata uang"
+        },
+        "weeklyBudgets": {
+          "type": "object",
+          "description": "Batas anggaran Week 1-4 dan Monthly"
+        },
+        "weeklyDateRanges": {
+          "type": "object",
+          "description": "Rentang tanggal mulai dan akhir untuk setiap minggu"
+        },
+        "customCalendarPeriod": {
+          "type": "object",
+          "description": "Konfigurasi periode kalender kustom aktif"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Waktu pembuatan dokumen di server"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Waktu pembaruan terakhir di server"
+        }
+      },
+      "required": [
+        "ownerId",
+        "userProfile",
+        "weeklyBudgets",
+        "weeklyDateRanges",
+        "customCalendarPeriod",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Catatan transaksi pemasukan atau pengeluaran pengguna.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "date": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "amount": {
+          "type": "number"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["expense", "income"]
+        },
+        "week": {
+          "type": "string",
+          "enum": ["Week 1", "Week 2", "Week 3", "Week 4", "Monthly"]
+        },
+        "categoryId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "categoryName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "subcategoryId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "subcategoryName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "channel": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "clientCreatedAt": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "date",
+        "amount",
+        "type",
+        "week",
+        "categoryId",
+        "categoryName",
+        "notes",
+        "channel",
+        "clientCreatedAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Kategori pemasukan/pengeluaran beserta daftar sub-kategori.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "type": {
+          "type": "string",
+          "enum": ["expense", "income", "both"]
+        },
+        "color": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "icon": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "imageUrl": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "driveItemId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "isSystem": {
+          "type": "boolean"
+        },
+        "subcategories": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "name",
+        "type",
+        "color",
+        "icon",
+        "subcategories",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DriveImageItem": {
+      "title": "DriveImageItem",
+      "description": "Tautan gambar aset ikon kategori dari Google Drive atau URL eksternal.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "rawUrl": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "directUrl": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "fallbackUrl": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "fileId": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "categoryRefId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "clientCreatedAt": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "name",
+        "rawUrl",
+        "directUrl",
+        "fallbackUrl",
+        "fileId",
+        "clientCreatedAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserWorkspace" },
+      "description": "Dokumen utama ruang kerja keuangan pribadi pengguna (profil, anggaran, kalender)"
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "Subkoleksi transaksi keuangan milik pengguna"
+    },
+    "/users/{userId}/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Subkoleksi kategori dan sub-kategori milik pengguna"
+    },
+    "/users/{userId}/gallery/{itemId}": {
+      "schema": { "$ref": "#/entities/DriveImageItem" },
+      "description": "Subkoleksi aset tautan gambar milik pengguna"
+    }
+  }
+}

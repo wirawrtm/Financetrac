@@ -1,0 +1,270 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function primaryWorkspaceId() {
+      return 'rCTNkx24oiZG8iekymHljWanqb42';
+    }
+
+    function isPublicPrimaryWorkspace(userId) {
+      return userId == primaryWorkspaceId();
+    }
+
+    function isValidRangeEntry(range) {
+      return range is map
+        && range.keys().hasAll(['startDate', 'endDate'])
+        && range.keys().hasOnly(['startDate', 'endDate'])
+        && range.startDate is string && range.startDate.size() <= 20
+        && range.endDate is string && range.endDate.size() <= 20;
+    }
+
+    function isValidUserWorkspace(data) {
+      return data.keys().hasAll(['ownerId', 'userProfile', 'weeklyBudgets', 'weeklyDateRanges', 'customCalendarPeriod', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'userProfile', 'weeklyBudgets', 'weeklyDateRanges', 'customCalendarPeriod', 'createdAt', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == primaryWorkspaceId()
+        && data.userProfile is map
+        && data.userProfile.keys().hasAll(['name', 'avatarUrl', 'cardNumber', 'currency', 'initialBalance', 'bankAccount'])
+        && data.userProfile.keys().hasOnly(['name', 'avatarUrl', 'cardNumber', 'currency', 'initialBalance', 'bankAccount'])
+        && data.userProfile.name is string && data.userProfile.name.size() >= 1 && data.userProfile.name.size() <= 100
+        && data.userProfile.avatarUrl is string && data.userProfile.avatarUrl.size() <= 1000
+        && data.userProfile.cardNumber is string && data.userProfile.cardNumber.size() <= 60
+        && data.userProfile.currency in ['IDR', 'USD']
+        && (data.userProfile.initialBalance is int || data.userProfile.initialBalance is float)
+        && data.userProfile.bankAccount is string && data.userProfile.bankAccount.size() <= 120
+        && data.weeklyBudgets is map
+        && data.weeklyBudgets.keys().hasAll(['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Monthly'])
+        && data.weeklyBudgets.keys().hasOnly(['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Monthly'])
+        && (data.weeklyBudgets['Week 1'] is int || data.weeklyBudgets['Week 1'] is float) && data.weeklyBudgets['Week 1'] >= 0
+        && (data.weeklyBudgets['Week 2'] is int || data.weeklyBudgets['Week 2'] is float) && data.weeklyBudgets['Week 2'] >= 0
+        && (data.weeklyBudgets['Week 3'] is int || data.weeklyBudgets['Week 3'] is float) && data.weeklyBudgets['Week 3'] >= 0
+        && (data.weeklyBudgets['Week 4'] is int || data.weeklyBudgets['Week 4'] is float) && data.weeklyBudgets['Week 4'] >= 0
+        && (data.weeklyBudgets['Monthly'] is int || data.weeklyBudgets['Monthly'] is float) && data.weeklyBudgets['Monthly'] >= 0
+        && data.weeklyDateRanges is map
+        && data.weeklyDateRanges.keys().hasAll(['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Monthly'])
+        && data.weeklyDateRanges.keys().hasOnly(['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Monthly'])
+        && isValidRangeEntry(data.weeklyDateRanges['Week 1'])
+        && isValidRangeEntry(data.weeklyDateRanges['Week 2'])
+        && isValidRangeEntry(data.weeklyDateRanges['Week 3'])
+        && isValidRangeEntry(data.weeklyDateRanges['Week 4'])
+        && isValidRangeEntry(data.weeklyDateRanges['Monthly'])
+        && data.customCalendarPeriod is map
+        && data.customCalendarPeriod.keys().hasAll(['isActive', 'startDate', 'endDate', 'label', 'updatedAt'])
+        && data.customCalendarPeriod.keys().hasOnly(['isActive', 'startDate', 'endDate', 'label', 'updatedAt'])
+        && data.customCalendarPeriod.isActive is bool
+        && data.customCalendarPeriod.startDate is string && data.customCalendarPeriod.startDate.size() <= 20
+        && data.customCalendarPeriod.endDate is string && data.customCalendarPeriod.endDate.size() <= 20
+        && data.customCalendarPeriod.label is string && data.customCalendarPeriod.label.size() <= 100
+        && data.customCalendarPeriod.updatedAt is int
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'date', 'amount', 'type', 'week', 'categoryId', 'categoryName', 'notes', 'channel', 'clientCreatedAt', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'date', 'amount', 'type', 'week', 'categoryId', 'categoryName', 'subcategoryId', 'subcategoryName', 'notes', 'channel', 'clientCreatedAt', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && data.ownerId == primaryWorkspaceId()
+        && data.date is string && data.date.size() == 10
+        && (data.amount is int || data.amount is float) && data.amount >= 0
+        && data.type in ['expense', 'income']
+        && data.week in ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Monthly']
+        && data.categoryId is string && data.categoryId.size() >= 1 && data.categoryId.size() <= 128
+        && data.categoryName is string && data.categoryName.size() >= 1 && data.categoryName.size() <= 120
+        && (!('subcategoryId' in data) || (data.subcategoryId is string && data.subcategoryId.size() <= 128))
+        && (!('subcategoryName' in data) || (data.subcategoryName is string && data.subcategoryName.size() <= 120))
+        && data.notes is string && data.notes.size() <= 300
+        && data.channel is string && data.channel.size() <= 80
+        && data.clientCreatedAt is int && data.clientCreatedAt >= 0
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'name', 'type', 'color', 'icon', 'subcategories', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'name', 'type', 'color', 'icon', 'imageUrl', 'driveItemId', 'isSystem', 'subcategories', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && data.ownerId == primaryWorkspaceId()
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.type in ['expense', 'income', 'both']
+        && data.color is string && data.color.size() >= 1 && data.color.size() <= 32
+        && data.icon is string && data.icon.size() >= 1 && data.icon.size() <= 64
+        && (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1000))
+        && (!('driveItemId' in data) || (data.driveItemId is string && data.driveItemId.size() <= 128))
+        && (!('isSystem' in data) || data.isSystem is bool)
+        && data.subcategories is list
+        && data.subcategories.size() <= 50
+        && (data.subcategories.size() == 0 || (
+          data.subcategories[0] is map
+          && data.subcategories[0].keys().hasAll(['id', 'name'])
+          && data.subcategories[0].keys().hasOnly(['id', 'name'])
+          && data.subcategories[0].id is string && data.subcategories[0].id.size() <= 128
+          && data.subcategories[0].name is string && data.subcategories[0].name.size() <= 120
+        ))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidGalleryItem(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'name', 'rawUrl', 'directUrl', 'fallbackUrl', 'fileId', 'clientCreatedAt', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'name', 'rawUrl', 'directUrl', 'fallbackUrl', 'fileId', 'categoryRefId', 'clientCreatedAt', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && data.ownerId == primaryWorkspaceId()
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.rawUrl is string && data.rawUrl.size() >= 1 && data.rawUrl.size() <= 1000
+        && data.directUrl is string && data.directUrl.size() >= 1 && data.directUrl.size() <= 1000
+        && data.fallbackUrl is string && data.fallbackUrl.size() >= 1 && data.fallbackUrl.size() <= 1000
+        && data.fileId is string && data.fileId.size() <= 256
+        && (!('categoryRefId' in data) || (data.categoryRefId is string && data.categoryRefId.size() <= 128))
+        && data.clientCreatedAt is int && data.clientCreatedAt >= 0
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Single permanent public workspace scoped exclusively to rCTNkx24oiZG8iekymHljWanqb42
+    match /users/{userId} {
+      allow get: if isPublicPrimaryWorkspace(userId) && isValidId(userId);
+      allow list: if false;
+      allow create: if isPublicPrimaryWorkspace(userId)
+        && isValidId(userId)
+        && isValidUserWorkspace(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isPublicPrimaryWorkspace(userId)
+        && isValidId(userId)
+        && isValidUserWorkspace(incoming())
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'userProfile',
+          'weeklyBudgets',
+          'weeklyDateRanges',
+          'customCalendarPeriod',
+          'updatedAt'
+        ]);
+      allow delete: if false;
+
+      // User transactions subcollection
+      match /transactions/{transactionId} {
+        allow get: if isPublicPrimaryWorkspace(userId) && isValidId(transactionId);
+        allow list: if isPublicPrimaryWorkspace(userId) && resource.data.ownerId == primaryWorkspaceId();
+        allow create: if isPublicPrimaryWorkspace(userId)
+          && isValidId(transactionId)
+          && isValidTransaction(incoming())
+          && incoming().id == transactionId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isPublicPrimaryWorkspace(userId)
+          && isValidId(transactionId)
+          && isValidTransaction(incoming())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'date',
+            'amount',
+            'type',
+            'week',
+            'categoryId',
+            'categoryName',
+            'subcategoryId',
+            'subcategoryName',
+            'notes',
+            'channel',
+            'clientCreatedAt',
+            'updatedAt'
+          ]);
+        allow delete: if isPublicPrimaryWorkspace(userId) && isValidId(transactionId);
+      }
+
+      // User categories subcollection
+      match /categories/{categoryId} {
+        allow get: if isPublicPrimaryWorkspace(userId) && isValidId(categoryId);
+        allow list: if isPublicPrimaryWorkspace(userId) && resource.data.ownerId == primaryWorkspaceId();
+        allow create: if isPublicPrimaryWorkspace(userId)
+          && isValidId(categoryId)
+          && isValidCategory(incoming())
+          && incoming().id == categoryId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isPublicPrimaryWorkspace(userId)
+          && isValidId(categoryId)
+          && isValidCategory(incoming())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (!('isSystem' in existing()) ? !('isSystem' in incoming()) : ('isSystem' in incoming() && incoming().isSystem == existing().isSystem))
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'name',
+            'type',
+            'color',
+            'icon',
+            'imageUrl',
+            'driveItemId',
+            'subcategories',
+            'updatedAt'
+          ]);
+        allow delete: if isPublicPrimaryWorkspace(userId)
+          && isValidId(categoryId)
+          && categoryId != 'cat-saving'
+          && (!('isSystem' in existing()) || existing().isSystem != true);
+      }
+
+      // User gallery subcollection
+      match /gallery/{itemId} {
+        allow get: if isPublicPrimaryWorkspace(userId) && isValidId(itemId);
+        allow list: if isPublicPrimaryWorkspace(userId) && resource.data.ownerId == primaryWorkspaceId();
+        allow create: if isPublicPrimaryWorkspace(userId)
+          && isValidId(itemId)
+          && isValidGalleryItem(incoming())
+          && incoming().id == itemId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isPublicPrimaryWorkspace(userId)
+          && isValidId(itemId)
+          && isValidGalleryItem(incoming())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'name',
+            'rawUrl',
+            'directUrl',
+            'fallbackUrl',
+            'fileId',
+            'categoryRefId',
+            'clientCreatedAt',
+            'updatedAt'
+          ]);
+        allow delete: if isPublicPrimaryWorkspace(userId) && isValidId(itemId);
+      }
+    }
+  }
+}

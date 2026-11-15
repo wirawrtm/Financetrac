@@ -1,0 +1,6 @@
+{
+  "name": "DompetSaku - Keuangan Pribadi",
+  "description": "Aplikasi pencatatan, kalender mutasi, anggaran mingguan, dan plotting AI keuangan pribadi secara lokal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,134 @@
+import React, { useState } from 'react';
+import {
+  BookOpen,
+  Briefcase,
+  Car,
+  Coffee,
+  Film,
+  Gift,
+  Heart,
+  Home,
+  Layers,
+  PiggyBank,
+  Plane,
+  ShoppingBag,
+  Smartphone,
+  Utensils,
+  Wallet,
+  Zap,
+} from 'lucide-react';
+import { Category, DriveImageItem } from '../types/finance';
+
+export const CATEGORY_ICON_OPTIONS = [
+  { key: 'Utensils', label: 'Makanan' },
+  { key: 'Coffee', label: 'Kopi & Kafe' },
+  { key: 'Car', label: 'Transportasi' },
+  { key: 'Zap', label: 'Tagihan' },
+  { key: 'Film', label: 'Hiburan' },
+  { key: 'ShoppingBag', label: 'Belanja' },
+  { key: 'Briefcase', label: 'Gaji & Kerja' },
+  { key: 'PiggyBank', label: 'Tabungan' },
+  { key: 'Home', label: 'Rumah' },
+  { key: 'Heart', label: 'Kesehatan' },
+  { key: 'Smartphone', label: 'Gadget & Pulsa' },
+  { key: 'BookOpen', label: 'Edukasi' },
+  { key: 'Plane', label: 'Perjalanan' },
+  { key: 'Gift', label: 'Hadiah' },
+  { key: 'Wallet', label: 'Dompet' },
+  { key: 'Layers', label: 'Lainnya' },
+] as const;
+
+export function renderLucideCategoryIcon(iconName: string, className = 'w-4 h-4') {
+  switch (iconName) {
+    case 'Utensils':
+      return <Utensils className={className} />;
+    case 'Coffee':
+      return <Coffee className={className} />;
+    case 'Car':
+      return <Car className={className} />;
+    case 'Zap':
+      return <Zap className={className} />;
+    case 'Film':
+      return <Film className={className} />;
+    case 'ShoppingBag':
+      return <ShoppingBag className={className} />;
+    case 'Briefcase':
+      return <Briefcase className={className} />;
+    case 'PiggyBank':
+      return <PiggyBank className={className} />;
+    case 'Home':
+      return <Home className={className} />;
+    case 'Heart':
+      return <Heart className={className} />;
+    case 'Smartphone':
+      return <Smartphone className={className} />;
+    case 'BookOpen':
+      return <BookOpen className={className} />;
+    case 'Plane':
+      return <Plane className={className} />;
+    case 'Gift':
+      return <Gift className={className} />;
+    case 'Wallet':
+      return <Wallet className={className} />;
+    default:
+      return <Layers className={className} />;
+  }
+}
+
+interface CategoryIconProps {
+  category?: Category;
+  gallery?: DriveImageItem[];
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export const CategoryIcon: React.FC<CategoryIconProps> = ({
+  category,
+  gallery = [],
+  size = 'md',
+}) => {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  const sizeClass =
+    size === 'sm'
+      ? 'w-8 h-8'
+      : size === 'lg'
+      ? 'w-11 h-11'
+      : 'w-10 h-10';
+
+  const iconSize =
+    size === 'sm' ? 'w-3.5 h-3.5' : size === 'lg' ? 'w-5 h-5' : 'w-4 h-4';
+
+  const linkedDrive = category?.driveItemId
+    ? gallery.find((g) => g.id === category.driveItemId)
+    : undefined;
+  const resolvedImageUrl =
+    (linkedDrive?.directUrl || category?.imageUrl || '').trim();
+
+  const color = category?.color || '#64748B';
+
+  if (resolvedImageUrl && !imgFailed) {
+    return (
+      <div
+        className={`${sizeClass} rounded-full overflow-hidden shrink-0 border border-slate-200 bg-white flex items-center justify-center`}
+      >
+        <img
+          src={resolvedImageUrl}
+          alt={category?.name || 'Ikon kategori'}
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover"
+          onError={() => setImgFailed(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${sizeClass} rounded-full shrink-0 flex items-center justify-center text-white font-semibold shadow-xs`}
+      style={{ backgroundColor: color }}
+      aria-hidden="true"
+    >
+      {renderLucideCategoryIcon(category?.icon || 'Layers', iconSize)}
+    </div>
+  );
+};
