@@ -362,19 +362,19 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           isMobileLayout ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
         }`}
       >
-        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-3.5 sm:p-4">
           <p className="text-xs text-slate-500 truncate">Pemasukan Periode</p>
           <p className="mt-1 text-sm sm:text-base font-bold text-slate-900 tabular-nums truncate">
             {formatCurrency(periodStats.income, currency)}
           </p>
         </div>
-        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-3.5 sm:p-4">
           <p className="text-xs text-slate-500 truncate">Pengeluaran Periode</p>
           <p className="mt-1 text-sm sm:text-base font-bold text-[#D9463E] tabular-nums truncate">
             {formatCurrency(periodStats.expense, currency)}
           </p>
         </div>
-        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-3.5 sm:p-4">
           <p className="text-xs text-slate-500 truncate">Selisih Bersih</p>
           <p
             className={`mt-1 text-sm sm:text-base font-bold tabular-nums truncate ${
@@ -385,7 +385,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             {formatCurrency(Math.abs(periodStats.net), currency)}
           </p>
         </div>
-        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4">
+        <div className="min-w-0 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-3.5 sm:p-4">
           <p className="text-xs text-slate-500 truncate">Jumlah Transaksi</p>
           <p className="mt-1 text-sm sm:text-base font-bold text-slate-900 tabular-nums truncate">
             {formatNumberID(periodStats.count)} item
@@ -401,7 +401,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       >
         {/* Interactive Monthly Calendar */}
         <div
-          className={`rounded-2xl bg-white border border-slate-100 p-5 ${
+          className={`rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-5 ${
             isMobileLayout ? '' : 'lg:col-span-5'
           }`}
         >
@@ -517,7 +517,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           className={`space-y-4 ${isMobileLayout ? '' : 'lg:col-span-7'}`}
         >
           {/* Search & Segmented Filters */}
-          <div className="rounded-2xl bg-white border border-slate-100 p-4 space-y-3">
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 space-y-3">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -568,7 +568,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
           {/* Grouped List */}
           {groupedTransactions.length === 0 ? (
-            <div className="rounded-2xl bg-white border border-slate-100 p-8 text-center">
+            <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-8 text-center">
               <p className="text-sm font-semibold text-slate-700">
                 Tidak ada transaksi yang cocok dengan filter saat ini.
               </p>
@@ -583,7 +583,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   <p className="text-xs font-semibold text-slate-400 mb-2">
                     {grp.label}
                   </p>
-                  <div className="rounded-2xl bg-white border border-slate-100 divide-y divide-slate-100 overflow-hidden">
+                  <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] divide-y divide-slate-100 overflow-hidden">
                     {grp.items.map((trx) => {
                       const cat = categories.find(
                         (c) => c.id === trx.categoryId

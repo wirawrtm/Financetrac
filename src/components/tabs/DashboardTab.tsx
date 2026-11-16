@@ -337,7 +337,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           </div>
 
           {groupedRecent.length === 0 ? (
-            <div className="rounded-2xl bg-white border border-slate-100 p-8 text-center">
+            <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-8 text-center">
               <Wallet className="w-8 h-8 text-slate-300 mx-auto" />
               <p className="mt-3 text-sm font-semibold text-slate-800">
                 Belum ada transaksi tercatat
@@ -360,7 +360,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                   <p className="text-xs font-semibold text-slate-400 mb-2">
                     {grp.label}
                   </p>
-                  <div className="rounded-2xl bg-white border border-slate-100 divide-y divide-slate-100 overflow-hidden">
+                  <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] divide-y divide-slate-100 overflow-hidden">
                     {grp.items.map((trx) => {
                       const cat = categories.find(
                         (c) => c.id === trx.categoryId
@@ -449,7 +449,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         {/* Right: Weekly Budget Status & Charts */}
         <div className={`space-y-5 ${isMobileLayout ? '' : 'lg:col-span-5'}`}>
           {/* Weekly Cashflow Visual Bar Chart */}
-          <div className="rounded-3xl bg-white border border-slate-100 px-3.5 py-4 sm:p-5 overflow-hidden">
+          <div className="rounded-3xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] px-3.5 py-4 sm:p-5 overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <div className="min-w-0">
                 <h3 className="text-sm font-bold text-slate-900">
@@ -618,7 +618,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           </div>
 
           {/* Budget Status Breakdown by Week/Monthly & Category/Subcategory */}
-          <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 overflow-hidden">
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 overflow-hidden">
             <div className="flex items-center justify-between gap-2 mb-3">
               <h3 className="text-sm font-bold text-slate-900">
                 Status Anggaran
@@ -787,7 +787,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           </div>
 
           {/* Separate Card: Rincian Kategori & Sub-Kategori */}
-          <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 overflow-hidden space-y-3">
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 overflow-hidden space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
@@ -961,7 +961,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                             return (
                               <div
                                 key={sub.name}
-                                className="rounded-xl bg-white border border-slate-100 px-3 py-2.5 space-y-1.5 shadow-2xs"
+                                className="rounded-xl bg-white border border-slate-100 px-3 py-2.5 space-y-1.5 shadow-sm"
                               >
                                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px]">
                                   <div className="flex items-center gap-1.5 min-w-0">

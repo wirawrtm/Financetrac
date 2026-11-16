@@ -186,7 +186,7 @@ export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="rounded-2xl bg-white border border-slate-100 p-5 space-y-4">
+      <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-semibold text-slate-700">
             Teks Mutasi / Catatan Harian
@@ -253,7 +253,7 @@ export const AutoPlotTab: React.FC<AutoPlotTabProps> = ({
 
       {/* Review Recommendations */}
       {items.length > 0 && (
-        <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-4">
+        <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-bold text-slate-900">

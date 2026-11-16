@@ -134,7 +134,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
       {/* Create / Edit Category Card */}
       <form
         onSubmit={handleSubmitCategory}
-        className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-4"
+        className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 space-y-4"
       >
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900">
@@ -253,7 +253,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
           return (
             <div
               key={cat.id}
-              className="min-w-0 rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 flex flex-col justify-between gap-4"
+              className="min-w-0 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 flex flex-col justify-between gap-4"
             >
               <div>
                 <div className="flex items-start justify-between gap-3">

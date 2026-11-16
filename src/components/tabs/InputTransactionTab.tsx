@@ -284,7 +284,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
       </div>
 
       {mode === 'single' ? (
-        <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-6 max-w-2xl">
+        <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-6 max-w-2xl">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -560,7 +560,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
         /* Multiple Batch Transaction Mode */
         <form
           onSubmit={handleSaveMultiple}
-          className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-4"
+          className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 space-y-4"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">

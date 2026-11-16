@@ -96,7 +96,7 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
       {/* Add Form */}
       <form
         onSubmit={handleAdd}
-        className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-4"
+        className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 space-y-4"
       >
         <div
           className={`grid gap-4 ${
@@ -177,7 +177,7 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
 
       {/* Gallery Grid */}
       {gallery.length === 0 ? (
-        <div className="rounded-2xl bg-white border border-slate-100 p-10 text-center">
+        <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-10 text-center">
           <ImageIcon className="w-8 h-8 text-slate-300 mx-auto" />
           <p className="mt-3 text-sm font-semibold text-slate-800">
             Galeri Aset Masih Kosong
@@ -198,7 +198,7 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
           {gallery.map((item) => (
             <div
               key={item.id}
-              className="min-w-0 rounded-2xl bg-white border border-slate-100 p-4 space-y-3"
+              className="min-w-0 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 space-y-3"
             >
               <GalleryPreviewImage item={item} />
 

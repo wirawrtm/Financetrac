@@ -138,7 +138,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
         {weekSummaries.map((item) => (
           <div
             key={item.wk}
-            className={`min-w-0 rounded-2xl bg-white border border-slate-100 p-3.5 sm:p-4 ${
+            className={`min-w-0 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-3.5 sm:p-4 ${
               item.wk === 'Monthly'
                 ? isMobileLayout
                   ? 'col-span-2'
@@ -196,7 +196,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
       {/* Form: Uniform + Per-Week Caps + Date Ranges */}
       <form
         onSubmit={handleSaveAll}
-        className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-6"
+        className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 space-y-6"
       >
         <div
           className={`flex justify-between gap-4 pb-5 border-b border-slate-100 ${
@@ -325,7 +325,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
       </form>
 
       {/* Per-Category Weekly Realization */}
-      <div className="rounded-2xl bg-white border border-slate-100 p-4 sm:p-5 space-y-4">
+      <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <CalendarDays className="w-4 h-4 text-slate-700 shrink-0" />
