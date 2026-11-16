@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatNumberID } from '../utils/formatters';
 
 interface LeatherWalletCardProps {
   balance: number;
@@ -38,6 +38,8 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
   const activeBudget = isMonthlyPrimary ? monthlyBudget : budget;
   const activeSpending = isMonthlyPrimary ? monthlySpending : spending;
   const activeRemaining = isMonthlyPrimary ? monthlyRemaining : remaining;
+  const spendingPct =
+    activeBudget > 0 ? Math.round((activeSpending / activeBudget) * 100) : 0;
 
   return (
     <div className="relative pt-3 select-none">
@@ -122,10 +124,25 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
                 Total Spending ·{' '}
                 {isMonthlyPrimary ? 'Monthly' : runningWeekLabel}
               </p>
-              <p className="mt-1 text-xl sm:text-[28px] font-bold tracking-tight text-white tabular-nums leading-tight truncate">
-                {hidden
-                  ? '••••••••••'
-                  : formatCurrency(activeSpending, currency)}
+              <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xl sm:text-[28px] font-bold tracking-tight text-white tabular-nums leading-tight">
+                <span>
+                  {hidden
+                    ? '••••••••••'
+                    : formatCurrency(activeSpending, currency)}
+                </span>
+                {!hidden && (
+                  <span
+                    className={`text-xs sm:text-sm font-semibold tabular-nums ${
+                      spendingPct > 100
+                        ? 'text-rose-200'
+                        : isMonthlyPrimary
+                        ? 'text-blue-100/90'
+                        : 'text-[#E7D4C5]/90'
+                    }`}
+                  >
+                    ({formatNumberID(spendingPct)}%)
+                  </span>
+                )}
               </p>
             </div>
 

@@ -143,7 +143,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     const filtered = transactions.filter((t) => {
       if (t.type !== 'expense') return false;
       if (isSavingCategoryTransaction(t)) return false;
-      if (selectedBudgetWeek === 'Monthly') return true;
       return t.week === selectedBudgetWeek;
     });
 
