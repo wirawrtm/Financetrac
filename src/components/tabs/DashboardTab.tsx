@@ -270,10 +270,10 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     ).sort((a, b) => a.localeCompare(b));
 
     const dailySeries = allDateKeys.map((dateStr) => {
-      const [, mm, dd] = dateStr.split('-');
+      const [, , dd] = dateStr.split('-');
       return {
         date: dateStr,
-        shortLabel: `${dd}/${mm}`,
+        shortLabel: dd,
         amount: dailyMap.get(dateStr) || 0,
       };
     });
@@ -811,11 +811,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       ).toFixed(1)} Z`
                     : '';
 
-                const labelStep = Math.max(
-                  1,
-                  Math.ceil(coords.length / 6)
-                );
-
                 const valueLabelIndices = new Set<number>();
                 if (activeIdx !== null) {
                   valueLabelIndices.add(activeIdx);
@@ -946,10 +941,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                           {/* Data Points + Hit Targets + X-Axis Labels */}
                           {coords.map((pt, idx) => {
                             const isActive = activeIdx === idx;
-                            const showLabel =
-                              idx === 0 ||
-                              idx === coords.length - 1 ||
-                              idx % labelStep === 0;
                             const showDot =
                               isActive ||
                               pt.amount > 0 ||
@@ -957,26 +948,22 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 
                             return (
                               <g key={pt.date}>
-                                {showLabel && (
-                                  <text
-                                    x={pt.x}
-                                    y={svgH - 4}
-                                    textAnchor={
-                                      idx === 0
-                                        ? 'start'
-                                        : idx === coords.length - 1
-                                        ? 'end'
-                                        : 'middle'
-                                    }
-                                    className={`text-[9px] font-mono ${
-                                      isActive
-                                        ? 'fill-slate-900 font-bold'
-                                        : 'fill-slate-400'
-                                    }`}
-                                  >
-                                    {pt.shortLabel}
-                                  </text>
-                                )}
+                                <text
+                                  x={pt.x}
+                                  y={svgH - 4}
+                                  textAnchor="middle"
+                                  className={`${
+                                    coords.length > 16
+                                      ? 'text-[7.5px]'
+                                      : 'text-[9px]'
+                                  } font-mono ${
+                                    isActive
+                                      ? 'fill-slate-900 font-bold'
+                                      : 'fill-slate-400'
+                                  }`}
+                                >
+                                  {pt.shortLabel}
+                                </text>
 
                                 {showDot && (
                                   <circle

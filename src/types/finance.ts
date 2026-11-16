@@ -6,7 +6,6 @@ export type TabKey =
   | 'dashboard'
   | 'history'
   | 'input'
-  | 'autoplot'
   | 'budget'
   | 'categories'
   | 'gallery'
@@ -81,21 +80,6 @@ export interface DummyDatabase {
   weeklyDateRanges: WeeklyDateRanges;
   customCalendarPeriod: CustomCalendarPeriod;
   gallery: DriveImageItem[];
-}
-
-export interface AutoPlotItem {
-  id: string;
-  selected: boolean;
-  date: string;
-  amount: number;
-  type: TransactionType;
-  notes: string;
-  channel: string;
-  categoryId: string;
-  categoryName: string;
-  subcategoryId?: string;
-  subcategoryName?: string;
-  reason: string;
 }
 
 export interface ToastMessage {

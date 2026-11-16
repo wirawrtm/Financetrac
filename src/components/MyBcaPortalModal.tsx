@@ -3,13 +3,11 @@ import { ExternalLink, Landmark, ShieldCheck, X } from 'lucide-react';
 
 interface MyBcaPortalModalProps {
   open: boolean;
-  onGoToAutoPlot: () => void;
   onClose: () => void;
 }
 
 export const MyBcaPortalModal: React.FC<MyBcaPortalModalProps> = ({
   open,
-  onGoToAutoPlot,
   onClose,
 }) => {
   if (!open) return null;
@@ -50,10 +48,9 @@ export const MyBcaPortalModal: React.FC<MyBcaPortalModalProps> = ({
           <div className="flex items-start gap-2.5 text-xs text-slate-600 leading-relaxed">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <p>
-              Untuk menjaga keamanan offline, aplikasi ini tidak menyimpan PIN
-              atau kredensial bank. Anda dapat menyalin mutasi e-Statement dari
-              portal MyBCA lalu menempelkannya di menu{' '}
-              <strong className="text-slate-900">Plotting AI</strong>.
+              Untuk menjaga keamanan, aplikasi ini tidak menyimpan PIN atau
+              kredensial bank. Anda dapat membuka portal MyBCA secara langsung
+              untuk melihat mutasi rekening Anda.
             </p>
           </div>
 
@@ -69,13 +66,10 @@ export const MyBcaPortalModal: React.FC<MyBcaPortalModalProps> = ({
             </a>
             <button
               type="button"
-              onClick={() => {
-                onClose();
-                onGoToAutoPlot();
-              }}
+              onClick={onClose}
               className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-medium transition-colors"
             >
-              Ke Plotting AI
+              Tutup
             </button>
           </div>
         </div>

@@ -14,7 +14,6 @@ import {
   PlusCircle,
   ShieldCheck,
   Smartphone,
-  Sparkles,
   X,
 } from 'lucide-react';
 import { PRIMARY_USER_EMAIL, PRIMARY_WORKSPACE_UID } from './firebase';
@@ -46,7 +45,6 @@ import { detectWeekFromDate, generateId } from './utils/formatters';
 import { ConfirmModal } from './components/ConfirmModal';
 import { MyBcaPortalModal } from './components/MyBcaPortalModal';
 import { ToastContainer } from './components/ToastContainer';
-import { AutoPlotTab } from './components/tabs/AutoPlotTab';
 import { BudgetTab } from './components/tabs/BudgetTab';
 import { CategoriesTab } from './components/tabs/CategoriesTab';
 import { DashboardTab } from './components/tabs/DashboardTab';
@@ -76,7 +74,6 @@ const NAV_ITEMS: NavItem[] = [
     shortLabel: 'Catat',
     icon: PlusCircle,
   },
-  { key: 'autoplot', label: 'Plotting AI', shortLabel: 'AI Plot', icon: Sparkles },
   { key: 'budget', label: 'Anggaran', shortLabel: 'Anggaran', icon: BarChart3 },
   {
     key: 'categories',
@@ -721,16 +718,6 @@ export default function App() {
             onInlineAddSubcategory={handleInlineAddSubcategory}
           />
         );
-      case 'autoplot':
-        return (
-          <AutoPlotTab
-            categories={db.categories}
-            weeklyDateRanges={db.weeklyDateRanges}
-            isMobileLayout={isMobileLayout}
-            onSaveBulkTransactions={handleSaveBatchTransactions}
-            onNotify={notify}
-          />
-        );
       case 'budget':
         return (
           <BudgetTab
@@ -790,7 +777,7 @@ export default function App() {
     }
   };
 
-  // Mobile Dock Items (4 primary tabs mirroring the floating dark pill dock)
+  // Mobile Dock Items (3 primary tabs mirroring the floating dark pill dock)
   const mobileDockTabs: {
     key: TabKey;
     label: string;
@@ -799,7 +786,6 @@ export default function App() {
     { key: 'dashboard', label: 'Home', icon: Home },
     { key: 'history', label: 'Riwayat', icon: CalendarDays },
     { key: 'budget', label: 'Anggaran', icon: BarChart3 },
-    { key: 'autoplot', label: 'AI Plot', icon: Sparkles },
   ];
 
   return (
@@ -822,7 +808,6 @@ export default function App() {
 
       <MyBcaPortalModal
         open={myBcaOpen}
-        onGoToAutoPlot={() => navigateToTab('autoplot')}
         onClose={() => setMyBcaOpen(false)}
       />
 
