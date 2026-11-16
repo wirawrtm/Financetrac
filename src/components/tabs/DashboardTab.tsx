@@ -18,6 +18,7 @@ import {
 import {
   detectWeekFromDate,
   formatCurrency,
+  formatDateID,
   formatMonthYearID,
   formatNumberID,
   formatShortDateTime,
@@ -43,6 +44,35 @@ interface DashboardTabProps {
   onDeleteTransaction: (trx: Transaction) => void;
 }
 
+function enumerateIsoDates(
+  startIso: string,
+  endIso: string,
+  maxDays = 45
+): string[] {
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(startIso) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(endIso)
+  ) {
+    return [];
+  }
+  const start = new Date(`${startIso}T00:00:00Z`);
+  const end = new Date(`${endIso}T00:00:00Z`);
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    start > end
+  ) {
+    return [];
+  }
+  const dates: string[] = [];
+  const cursor = new Date(start.getTime());
+  while (cursor <= end && dates.length < maxDays) {
+    dates.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return dates;
+}
+
 export const DashboardTab: React.FC<DashboardTabProps> = ({
   transactions,
   categories,
@@ -58,6 +88,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 }) => {
   const [selectedBudgetWeek, setSelectedBudgetWeek] =
     useState<WeekKey>('Monthly');
+  const [hoveredChartIdx, setHoveredChartIdx] = useState<number | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({});
@@ -226,14 +257,42 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       }))
       .sort((a, b) => b.total - a.total);
 
+    const dailyMap = new Map<string, number>();
+    for (const t of filtered) {
+      dailyMap.set(t.date, (dailyMap.get(t.date) || 0) + t.amount);
+    }
+    const range = weeklyDateRanges[selectedBudgetWeek];
+    const rangeDates = range
+      ? enumerateIsoDates(range.startDate, range.endDate, 45)
+      : [];
+    const allDateKeys = Array.from(
+      new Set([...rangeDates, ...Array.from(dailyMap.keys())])
+    ).sort((a, b) => a.localeCompare(b));
+
+    const dailySeries = allDateKeys.map((dateStr) => {
+      const [, mm, dd] = dateStr.split('-');
+      return {
+        date: dateStr,
+        shortLabel: `${dd}/${mm}`,
+        amount: dailyMap.get(dateStr) || 0,
+      };
+    });
+
     return {
       totalSpent,
       limit,
       remaining: limit - totalSpent,
       pct: limit > 0 ? Math.round((totalSpent / limit) * 100) : 0,
       breakdown,
+      dailySeries,
     };
-  }, [transactions, selectedBudgetWeek, weeklyBudgets, categories]);
+  }, [
+    transactions,
+    selectedBudgetWeek,
+    weeklyBudgets,
+    weeklyDateRanges,
+    categories,
+  ]);
 
   // Grouped recent transactions (latest 3)
   const groupedRecent = useMemo(() => {
@@ -699,6 +758,307 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       currency
                     )}`}
               </p>
+            </div>
+
+            {/* Daily Spend Line Chart (follows selected week / Bulanan) */}
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              {(() => {
+                const series = selectedBudgetBreakdown.dailySeries;
+                const activeIdx =
+                  hoveredChartIdx !== null && hoveredChartIdx < series.length
+                    ? hoveredChartIdx
+                    : null;
+                const activePoint =
+                  activeIdx !== null ? series[activeIdx] : null;
+                const peakAmount = Math.max(
+                  0,
+                  ...series.map((p) => p.amount)
+                );
+                const maxVal = peakAmount > 0 ? peakAmount : 1;
+
+                const svgW = 360;
+                const svgH = 132;
+                const padLeft = 18;
+                const padRight = 18;
+                const padTop = 20;
+                const padBottom = 22;
+                const plotW = svgW - padLeft - padRight;
+                const plotH = svgH - padTop - padBottom;
+
+                const coords = series.map((pt, idx) => {
+                  const x =
+                    series.length <= 1
+                      ? padLeft + plotW / 2
+                      : padLeft + (idx / (series.length - 1)) * plotW;
+                  const y =
+                    padTop + plotH - (pt.amount / maxVal) * plotH;
+                  return { ...pt, x, y };
+                });
+
+                const linePoints = coords
+                  .map((c) => `${c.x.toFixed(1)},${c.y.toFixed(1)}`)
+                  .join(' ');
+                const areaPath =
+                  coords.length > 0
+                    ? `M ${coords[0].x.toFixed(1)},${(padTop + plotH).toFixed(
+                        1
+                      )} ` +
+                      coords
+                        .map((c) => `L ${c.x.toFixed(1)},${c.y.toFixed(1)}`)
+                        .join(' ') +
+                      ` L ${coords[coords.length - 1].x.toFixed(1)},${(
+                        padTop + plotH
+                      ).toFixed(1)} Z`
+                    : '';
+
+                const labelStep = Math.max(
+                  1,
+                  Math.ceil(coords.length / 6)
+                );
+
+                const valueLabelIndices = new Set<number>();
+                if (activeIdx !== null) {
+                  valueLabelIndices.add(activeIdx);
+                }
+                if (coords.length <= 10) {
+                  coords.forEach((_, idx) => valueLabelIndices.add(idx));
+                } else {
+                  let lastLabeledX = -Infinity;
+                  coords.forEach((pt, idx) => {
+                    if (pt.amount <= 0) return;
+                    if (
+                      activeIdx !== null &&
+                      Math.abs(pt.x - coords[activeIdx].x) < 32
+                    ) {
+                      return;
+                    }
+                    if (pt.x - lastLabeledX >= 34) {
+                      valueLabelIndices.add(idx);
+                      lastLabeledX = pt.x;
+                    }
+                  });
+                }
+
+                return (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <span className="font-semibold text-slate-700">
+                        Tren Spend Harian ·{' '}
+                        {selectedBudgetWeek === 'Monthly'
+                          ? 'Bulanan'
+                          : selectedBudgetWeek}
+                      </span>
+                      <span className="font-mono tabular-nums text-[11px] text-slate-600">
+                        {activePoint
+                          ? `${formatDateID(activePoint.date)}: ${formatCurrency(
+                              activePoint.amount,
+                              currency
+                            )}`
+                          : `Maks: ${formatCurrency(peakAmount, currency, {
+                              compact: true,
+                            })}`}
+                      </span>
+                    </div>
+
+                    {coords.length === 0 ? (
+                      <div className="h-24 rounded-xl bg-slate-50 flex items-center justify-center text-xs text-slate-400">
+                        Belum ada data tanggal untuk periode ini.
+                      </div>
+                    ) : (
+                      <div
+                        className="rounded-xl bg-slate-50/70 border border-slate-100 p-2"
+                        onMouseLeave={() => setHoveredChartIdx(null)}
+                      >
+                        <svg
+                          viewBox={`0 0 ${svgW} ${svgH}`}
+                          className="w-full h-32 overflow-visible select-none"
+                          role="img"
+                          aria-label={`Grafik garis pengeluaran harian ${selectedBudgetWeek}`}
+                        >
+                          <defs>
+                            <linearGradient
+                              id="spendLineGrad"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="0%"
+                                stopColor="#D9463E"
+                                stopOpacity="0.22"
+                              />
+                              <stop
+                                offset="100%"
+                                stopColor="#D9463E"
+                                stopOpacity="0.01"
+                              />
+                            </linearGradient>
+                          </defs>
+
+                          {/* Horizontal Gridlines */}
+                          {[0, 0.5, 1].map((ratio) => {
+                            const y = padTop + plotH - ratio * plotH;
+                            return (
+                              <line
+                                key={ratio}
+                                x1={padLeft}
+                                y1={y}
+                                x2={svgW - padRight}
+                                y2={y}
+                                stroke="#E2E8F0"
+                                strokeWidth="1"
+                                strokeDasharray={ratio === 0 ? undefined : '3 3'}
+                              />
+                            );
+                          })}
+
+                          {/* Area Fill */}
+                          {areaPath && (
+                            <path d={areaPath} fill="url(#spendLineGrad)" />
+                          )}
+
+                          {/* Line Path */}
+                          {coords.length > 1 && (
+                            <polyline
+                              fill="none"
+                              stroke="#D9463E"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              points={linePoints}
+                            />
+                          )}
+
+                          {/* Active Vertical Hairline */}
+                          {activeIdx !== null && coords[activeIdx] && (
+                            <line
+                              x1={coords[activeIdx].x}
+                              y1={padTop}
+                              x2={coords[activeIdx].x}
+                              y2={padTop + plotH}
+                              stroke="#94A3B8"
+                              strokeWidth="1"
+                              strokeDasharray="2 2"
+                            />
+                          )}
+
+                          {/* Data Points + Hit Targets + X-Axis Labels */}
+                          {coords.map((pt, idx) => {
+                            const isActive = activeIdx === idx;
+                            const showLabel =
+                              idx === 0 ||
+                              idx === coords.length - 1 ||
+                              idx % labelStep === 0;
+                            const showDot =
+                              isActive ||
+                              pt.amount > 0 ||
+                              coords.length <= 10;
+
+                            return (
+                              <g key={pt.date}>
+                                {showLabel && (
+                                  <text
+                                    x={pt.x}
+                                    y={svgH - 4}
+                                    textAnchor={
+                                      idx === 0
+                                        ? 'start'
+                                        : idx === coords.length - 1
+                                        ? 'end'
+                                        : 'middle'
+                                    }
+                                    className={`text-[9px] font-mono ${
+                                      isActive
+                                        ? 'fill-slate-900 font-bold'
+                                        : 'fill-slate-400'
+                                    }`}
+                                  >
+                                    {pt.shortLabel}
+                                  </text>
+                                )}
+
+                                {showDot && (
+                                  <circle
+                                    cx={pt.x}
+                                    cy={pt.y}
+                                    r={isActive ? 4.5 : pt.amount > 0 ? 3 : 2}
+                                    fill={
+                                      isActive
+                                        ? '#0F172A'
+                                        : pt.amount > 0
+                                        ? '#D9463E'
+                                        : '#CBD5E1'
+                                    }
+                                    stroke="#FFFFFF"
+                                    strokeWidth={isActive ? 2 : 1.2}
+                                  />
+                                )}
+
+                                {showDot && valueLabelIndices.has(idx) && (
+                                  <text
+                                    x={pt.x}
+                                    y={pt.y - 7}
+                                    textAnchor={
+                                      idx === 0
+                                        ? 'start'
+                                        : idx === coords.length - 1
+                                        ? 'end'
+                                        : 'middle'
+                                    }
+                                    style={{
+                                      paintOrder: 'stroke',
+                                      stroke: '#F8FAFC',
+                                      strokeWidth: 3,
+                                      strokeLinejoin: 'round',
+                                    }}
+                                    className={`text-[8.5px] font-mono tabular-nums ${
+                                      isActive
+                                        ? 'fill-slate-900 font-bold'
+                                        : pt.amount > 0
+                                        ? 'fill-slate-700 font-semibold'
+                                        : 'fill-slate-400'
+                                    }`}
+                                  >
+                                    {formatCurrency(pt.amount, currency, {
+                                      compact: true,
+                                    })}
+                                  </text>
+                                )}
+
+                                {/* Invisible wider hover/tap column */}
+                                <rect
+                                  x={
+                                    pt.x -
+                                    Math.max(
+                                      6,
+                                      plotW / Math.max(coords.length * 2, 2)
+                                    )
+                                  }
+                                  y={padTop - 4}
+                                  width={Math.max(
+                                    12,
+                                    plotW / Math.max(coords.length, 1)
+                                  )}
+                                  height={plotH + 16}
+                                  fill="transparent"
+                                  className="cursor-pointer"
+                                  onMouseEnter={() => setHoveredChartIdx(idx)}
+                                  onClick={() =>
+                                    setHoveredChartIdx((prev) =>
+                                      prev === idx ? null : idx
+                                    )
+                                  }
+                                />
+                              </g>
+                            );
+                          })}
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Per-Week Spending Charts & Numbers Summary (W1-W4) */}
