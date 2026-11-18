@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -73,6 +73,16 @@ function enumerateIsoDates(
   return dates;
 }
 
+function getCurrentRunningWeek(ranges: WeeklyDateRanges): WeekKey {
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+    2,
+    '0'
+  )}-${String(now.getDate()).padStart(2, '0')}`;
+  const detected = detectWeekFromDate(todayIso, ranges);
+  return detected === 'Monthly' ? 'Week 1' : detected;
+}
+
 export const DashboardTab: React.FC<DashboardTabProps> = ({
   transactions,
   categories,
@@ -86,8 +96,24 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   onEditTransaction,
   onDeleteTransaction,
 }) => {
-  const [selectedBudgetWeek, setSelectedBudgetWeek] =
-    useState<WeekKey>('Monthly');
+  const hasUserPickedWeekRef = useRef(false);
+  const [selectedBudgetWeek, setSelectedBudgetWeek] = useState<WeekKey>(() =>
+    getCurrentRunningWeek(weeklyDateRanges)
+  );
+
+  useEffect(() => {
+    if (!hasUserPickedWeekRef.current) {
+      setSelectedBudgetWeek(getCurrentRunningWeek(weeklyDateRanges));
+    }
+  }, [weeklyDateRanges]);
+
+  const handleSelectBudgetWeek = (
+    updater: WeekKey | ((prev: WeekKey) => WeekKey)
+  ) => {
+    hasUserPickedWeekRef.current = true;
+    setSelectedBudgetWeek(updater);
+  };
+
   const [hoveredChartIdx, setHoveredChartIdx] = useState<number | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
@@ -332,9 +358,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 
   const activeRunningWeek = useMemo(() => {
     if (selectedBudgetWeek !== 'Monthly') return selectedBudgetWeek;
-    const todayIso = new Date().toISOString().slice(0, 10);
-    const detected = detectWeekFromDate(todayIso, weeklyDateRanges);
-    return detected === 'Monthly' ? 'Week 2' : detected;
+    return getCurrentRunningWeek(weeklyDateRanges);
   }, [selectedBudgetWeek, weeklyDateRanges]);
 
   const activeRunningStat = useMemo(
@@ -548,7 +572,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                     key={w.week}
                     type="button"
                     onClick={() =>
-                      setSelectedBudgetWeek((prev) =>
+                      handleSelectBudgetWeek((prev) =>
                         prev === w.week ? 'Monthly' : w.week
                       )
                     }
@@ -664,7 +688,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       </span>
                       <button
                         type="button"
-                        onClick={() => setSelectedBudgetWeek('Monthly')}
+                        onClick={() => handleSelectBudgetWeek('Monthly')}
                         className="text-[11px] font-semibold text-slate-500 hover:text-slate-900"
                       >
                         Reset Pilihan
@@ -698,7 +722,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 <button
                   key={wk}
                   type="button"
-                  onClick={() => setSelectedBudgetWeek(wk)}
+                  onClick={() => handleSelectBudgetWeek(wk)}
                   className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                     selectedBudgetWeek === wk
                       ? 'bg-white text-slate-900 shadow-xs'

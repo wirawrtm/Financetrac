@@ -263,13 +263,13 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   }, [filteredTransactions]);
 
   const groupedTransactions = useMemo(() => {
-    const groups: { monthKey: string; label: string; items: Transaction[] }[] =
+    const groups: { dateKey: string; label: string; items: Transaction[] }[] =
       [];
     for (const t of filteredTransactions) {
-      const monthKey = t.date.slice(0, 7);
-      let grp = groups.find((g) => g.monthKey === monthKey);
+      const dateKey = t.date;
+      let grp = groups.find((g) => g.dateKey === dateKey);
       if (!grp) {
-        grp = { monthKey, label: formatMonthYearID(monthKey), items: [] };
+        grp = { dateKey, label: formatDateID(dateKey), items: [] };
         groups.push(grp);
       }
       grp.items.push(t);
@@ -579,7 +579,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           ) : (
             <div className="space-y-4">
               {groupedTransactions.map((grp) => (
-                <div key={grp.monthKey}>
+                <div key={grp.dateKey}>
                   <p className="text-xs font-semibold text-slate-400 mb-2">
                     {grp.label}
                   </p>
