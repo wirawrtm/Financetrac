@@ -357,7 +357,11 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({
             Belum ada pengeluaran tercatat di {inspectWeek}.
           </p>
         ) : (
-          <div className="space-y-3">
+          <div
+            className={`grid gap-x-6 gap-y-3.5 ${
+              isMobileLayout ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'
+            }`}
+          >
             {categoryRealization.map((row) => (
               <div key={row.catId} className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2 text-xs">

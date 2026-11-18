@@ -284,7 +284,11 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
       </div>
 
       {mode === 'single' ? (
-        <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-6 max-w-2xl">
+        <div
+          className={`rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-6 ${
+            isMobileLayout ? '' : 'max-w-3xl'
+          }`}
+        >
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -577,7 +581,19 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
+            {!isMobileLayout && (
+              <div className="hidden lg:grid lg:grid-cols-[32px_138px_92px_132px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_36px] gap-2.5 px-3 text-[11px] font-semibold text-slate-500">
+                <span>#</span>
+                <span>Tanggal</span>
+                <span>Tipe</span>
+                <span>Nominal</span>
+                <span>Kategori</span>
+                <span>Sub-Kategori</span>
+                <span>Catatan</span>
+                <span className="sr-only">Aksi</span>
+              </div>
+            )}
             {batchRows.map((row, idx) => {
               const rowCats = categories;
               const activeCat =

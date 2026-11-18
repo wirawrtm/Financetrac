@@ -367,48 +367,41 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     [weeklyStats, activeRunningWeek]
   );
 
-  return (
-    <div className="space-y-6">
-      {/* Top Hero: Tactile Leather Wallet */}
-      <div className={isMobileLayout ? '' : 'max-w-[440px]'}>
-        {(() => {
-          const totalMonthlyPlusWeeklyBudget =
-            (weeklyBudgets['Week 1'] || 0) +
-            (weeklyBudgets['Week 2'] || 0) +
-            (weeklyBudgets['Week 3'] || 0) +
-            (weeklyBudgets['Week 4'] || 0) +
-            (weeklyBudgets.Monthly || 0);
-          return (
-            <LeatherWalletCard
-              balance={summary.currentBalance}
-              monthlyBudget={totalMonthlyPlusWeeklyBudget}
-              monthlySpending={summary.totalExpense}
-              monthlyRemaining={
-                totalMonthlyPlusWeeklyBudget - summary.totalExpense
-              }
-              monthlySaving={summary.totalSaving}
-              runningWeekLabel={activeRunningWeek}
-              budget={activeRunningStat?.budget ?? 0}
-              remaining={activeRunningStat?.remaining ?? 0}
-              spending={activeRunningStat?.expense ?? 0}
-              currency={currency}
-            />
-          );
-        })()}
-      </div>
+  const walletCardSection = (
+    <div>
+      {(() => {
+        const totalMonthlyPlusWeeklyBudget =
+          (weeklyBudgets['Week 1'] || 0) +
+          (weeklyBudgets['Week 2'] || 0) +
+          (weeklyBudgets['Week 3'] || 0) +
+          (weeklyBudgets['Week 4'] || 0) +
+          (weeklyBudgets.Monthly || 0);
+        return (
+          <LeatherWalletCard
+            balance={summary.currentBalance}
+            monthlyBudget={totalMonthlyPlusWeeklyBudget}
+            monthlySpending={summary.totalExpense}
+            monthlyRemaining={
+              totalMonthlyPlusWeeklyBudget - summary.totalExpense
+            }
+            monthlySaving={summary.totalSaving}
+            runningWeekLabel={activeRunningWeek}
+            budget={activeRunningStat?.budget ?? 0}
+            remaining={activeRunningStat?.remaining ?? 0}
+            spending={activeRunningStat?.expense ?? 0}
+            currency={currency}
+          />
+        );
+      })()}
+    </div>
+  );
 
-      {/* Transactions Section (Styled directly after the visual reference) */}
-      <div
-        className={`grid gap-6 ${
-          isMobileLayout ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-12'
-        }`}
-      >
-        {/* Left/Main: Recent Transactions Card */}
-        <div className={isMobileLayout ? '' : 'lg:col-span-7'}>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-slate-900">
-              Transaksi Terbaru
-            </h2>
+  const recentTransactionsSection = (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-bold text-slate-900">
+          Transaksi Terbaru
+        </h2>
             <button
               type="button"
               onClick={() => onNavigateTab('history')}
@@ -527,12 +520,13 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               ))}
             </div>
           )}
-        </div>
+    </div>
+  );
 
-        {/* Right: Weekly Budget Status & Charts */}
-        <div className={`space-y-5 ${isMobileLayout ? '' : 'lg:col-span-5'}`}>
-          {/* Weekly Cashflow Visual Bar Chart */}
-          <div className="rounded-3xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] px-3.5 py-4 sm:p-5 overflow-hidden">
+  const weeklyCashflowSection = (
+    <>
+      {/* Weekly Cashflow Visual Bar Chart */}
+      <div className="rounded-3xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] px-3.5 py-4 sm:p-5 overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <div className="min-w-0">
                 <h3 className="text-sm font-bold text-slate-900">
@@ -698,10 +692,14 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 })()}
               </div>
             )}
-          </div>
+      </div>
+    </>
+  );
 
-          {/* Budget Status Breakdown by Week/Monthly & Category/Subcategory */}
-          <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 overflow-hidden">
+  const budgetAndCategorySection = (
+    <>
+      {/* Budget Status Breakdown by Week/Monthly & Category/Subcategory */}
+      <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 overflow-hidden">
             <div className="flex items-center justify-between gap-2 mb-3">
               <h3 className="text-sm font-bold text-slate-900">
                 Status Anggaran
@@ -1433,7 +1431,33 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               </div>
             )}
           </div>
+    </>
+  );
+
+  if (isMobileLayout) {
+    return (
+      <div className="space-y-6">
+        {walletCardSection}
+        <div className="grid gap-6 grid-cols-1">
+          {recentTransactionsSection}
+          <div className="space-y-5">
+            {weeklyCashflowSection}
+            {budgetAndCategorySection}
+          </div>
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="lg:col-span-5 space-y-6">
+        {walletCardSection}
+        {recentTransactionsSection}
+        {weeklyCashflowSection}
+      </div>
+      <div className="lg:col-span-7 space-y-6">
+        {budgetAndCategorySection}
       </div>
     </div>
   );
