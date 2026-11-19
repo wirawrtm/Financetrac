@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
   Briefcase,
@@ -18,6 +18,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Category, DriveImageItem } from '../types/finance';
+import { getImageCandidateUrls } from '../utils/formatters';
 
 export const CATEGORY_ICON_OPTIONS = [
   { key: 'Utensils', label: 'Makanan' },
@@ -86,8 +87,6 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({
   gallery = [],
   size = 'md',
 }) => {
-  const [imgFailed, setImgFailed] = useState(false);
-
   const sizeClass =
     size === 'sm'
       ? 'w-8 h-8'
@@ -101,22 +100,46 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({
   const linkedDrive = category?.driveItemId
     ? gallery.find((g) => g.id === category.driveItemId)
     : undefined;
-  const resolvedImageUrl =
-    (linkedDrive?.directUrl || category?.imageUrl || '').trim();
 
+  const candidateUrls = useMemo(
+    () =>
+      getImageCandidateUrls({
+        fileId: linkedDrive?.fileId,
+        rawUrl: linkedDrive?.rawUrl,
+        directUrl: linkedDrive?.directUrl,
+        fallbackUrl: linkedDrive?.fallbackUrl,
+        imageUrl: category?.imageUrl,
+      }),
+    [
+      linkedDrive?.fileId,
+      linkedDrive?.rawUrl,
+      linkedDrive?.directUrl,
+      linkedDrive?.fallbackUrl,
+      category?.imageUrl,
+    ]
+  );
+
+  const candidatesKey = candidateUrls.join('|');
+  const [srcIdx, setSrcIdx] = useState(0);
+
+  useEffect(() => {
+    setSrcIdx(0);
+  }, [candidatesKey]);
+
+  const activeImageUrl = candidateUrls[srcIdx] || '';
   const color = category?.color || '#64748B';
 
-  if (resolvedImageUrl && !imgFailed) {
+  if (activeImageUrl) {
     return (
       <div
-        className={`${sizeClass} rounded-full overflow-hidden shrink-0 border border-slate-200 bg-white flex items-center justify-center`}
+        className={`${sizeClass} shrink-0 bg-transparent flex items-center justify-center`}
       >
         <img
-          src={resolvedImageUrl}
+          src={activeImageUrl}
           alt={category?.name || 'Ikon kategori'}
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover"
-          onError={() => setImgFailed(true)}
+          className="w-full h-full object-contain bg-transparent"
+          onError={() => setSrcIdx((prev) => prev + 1)}
         />
       </div>
     );

@@ -58,6 +58,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
   const [color, setColor] = useState('#2563EB');
   const [icon, setIcon] = useState('Utensils');
   const [driveItemId, setDriveItemId] = useState('');
+  const [manualImageUrl, setManualImageUrl] = useState('');
 
   // Inline subcategory inputs per category card
   const [newSubDraft, setNewSubDraft] = useState<Record<string, string>>({});
@@ -73,6 +74,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
     setColor('#2563EB');
     setIcon('Utensils');
     setDriveItemId('');
+    setManualImageUrl('');
   };
 
   const startEditCategory = (c: Category) => {
@@ -81,6 +83,20 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
     setColor(c.color);
     setIcon(c.icon);
     setDriveItemId(c.driveItemId || '');
+    setManualImageUrl(!c.driveItemId && c.imageUrl ? c.imageUrl : '');
+  };
+
+  const selectedGalleryItem = gallery.find((g) => g.id === driveItemId);
+  const previewCategory: Category = {
+    id: editingCat?.id || 'preview-cat',
+    name: name.trim() || 'Pratinjau Ikon',
+    type: 'both',
+    color,
+    icon,
+    driveItemId: driveItemId || undefined,
+    imageUrl:
+      selectedGalleryItem?.directUrl || (manualImageUrl.trim() || undefined),
+    subcategories: [],
   };
 
   const handleSubmitCategory = (e: React.FormEvent) => {
@@ -88,6 +104,8 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
     if (!name.trim()) return;
 
     const linkedDrive = gallery.find((g) => g.id === driveItemId);
+    const resolvedImageUrl =
+      linkedDrive?.directUrl || (manualImageUrl.trim() || undefined);
 
     if (editingCat) {
       const isSaving =
@@ -101,7 +119,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
         color,
         icon,
         driveItemId: driveItemId || undefined,
-        imageUrl: linkedDrive?.directUrl,
+        imageUrl: resolvedImageUrl,
       });
       resetForm();
     } else {
@@ -112,7 +130,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
         color,
         icon,
         driveItemId: driveItemId || undefined,
-        imageUrl: linkedDrive?.directUrl,
+        imageUrl: resolvedImageUrl,
         subcategories: [],
       });
       resetForm();
@@ -136,15 +154,38 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
         onSubmit={handleSubmitCategory}
         className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 space-y-4"
       >
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-900">
-            {editingCat ? `Edit Kategori: ${editingCat.name}` : 'Tambah Kategori Baru'}
-          </h3>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <CategoryIcon
+              category={previewCategory}
+              gallery={gallery}
+              size="md"
+            />
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-slate-900 truncate">
+                {editingCat
+                  ? `Edit Kategori: ${editingCat.name}`
+                  : 'Tambah Kategori Baru'}
+              </h3>
+              <p className="text-[11px] text-slate-400 truncate">
+                {driveItemId
+                  ? `Menggunakan gambar galeri: ${
+                      selectedGalleryItem?.name || 'Aset Galeri'
+                    }`
+                  : manualImageUrl
+                  ? 'Menggunakan URL gambar kustom'
+                  : `Ikon bawaan: ${
+                      CATEGORY_ICON_OPTIONS.find((o) => o.key === icon)
+                        ?.label || icon
+                    }`}
+              </p>
+            </div>
+          </div>
           {editingCat && (
             <button
               type="button"
               onClick={resetForm}
-              className="text-xs font-medium text-slate-500 hover:text-slate-900"
+              className="text-xs font-medium text-slate-500 hover:text-slate-900 shrink-0"
             >
               Batal Edit
             </button>
@@ -179,7 +220,11 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
             </label>
             <select
               value={icon}
-              onChange={(e) => setIcon(e.target.value)}
+              onChange={(e) => {
+                setIcon(e.target.value);
+                setDriveItemId('');
+                setManualImageUrl('');
+              }}
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
             >
               {CATEGORY_ICON_OPTIONS.map((opt) => (
@@ -196,7 +241,10 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
             </label>
             <select
               value={driveItemId}
-              onChange={(e) => setDriveItemId(e.target.value)}
+              onChange={(e) => {
+                setDriveItemId(e.target.value);
+                setManualImageUrl('');
+              }}
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
             >
               <option value="">Gunakan Ikon Bawaan</option>

@@ -157,7 +157,7 @@ export function parseGoogleDriveUrl(rawUrl: string): {
     /\/file\/d\/([a-zA-Z0-9_-]{10,})/,
     /[?&]id=([a-zA-Z0-9_-]{10,})/,
     /\/d\/([a-zA-Z0-9_-]{10,})/,
-    /lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]{10,})/,
+    /lh3\.google(?:usercontent)?\.com\/d\/([a-zA-Z0-9_-]{10,})/,
   ];
 
   for (const regex of patterns) {
@@ -166,8 +166,8 @@ export function parseGoogleDriveUrl(rawUrl: string): {
       const fileId = match[1];
       return {
         fileId,
-        directUrl: `https://drive.google.com/uc?export=view&id=${fileId}`,
-        fallbackUrl: `https://lh3.googleusercontent.com/d/${fileId}`,
+        directUrl: `https://lh3.googleusercontent.com/d/${fileId}`,
+        fallbackUrl: `https://drive.google.com/thumbnail?id=${fileId}&sz=w512`,
         isValidDrive: true,
       };
     }
@@ -179,6 +179,52 @@ export function parseGoogleDriveUrl(rawUrl: string): {
     fallbackUrl: trimmed,
     isValidDrive: false,
   };
+}
+
+export function getImageCandidateUrls(sources: {
+  fileId?: string;
+  rawUrl?: string;
+  directUrl?: string;
+  fallbackUrl?: string;
+  imageUrl?: string;
+}): string[] {
+  const seen = new Set<string>();
+  const addUrl = (url?: string) => {
+    const cleaned = (url || '').trim();
+    if (cleaned && !seen.has(cleaned)) {
+      seen.add(cleaned);
+    }
+  };
+
+  let detectedFileId = (sources.fileId || '').trim();
+  if (!detectedFileId) {
+    for (const candidate of [
+      sources.rawUrl,
+      sources.directUrl,
+      sources.fallbackUrl,
+      sources.imageUrl,
+    ]) {
+      if (candidate) {
+        const parsed = parseGoogleDriveUrl(candidate);
+        if (parsed.isValidDrive && parsed.fileId) {
+          detectedFileId = parsed.fileId;
+          break;
+        }
+      }
+    }
+  }
+
+  if (detectedFileId) {
+    addUrl(`https://lh3.googleusercontent.com/d/${detectedFileId}`);
+    addUrl(`https://drive.google.com/thumbnail?id=${detectedFileId}&sz=w512`);
+    addUrl(`https://drive.google.com/uc?export=view&id=${detectedFileId}`);
+  }
+
+  addUrl(sources.directUrl);
+  addUrl(sources.fallbackUrl);
+  addUrl(sources.imageUrl);
+
+  return Array.from(seen);
 }
 
 export function generateId(prefix = 'id'): string {

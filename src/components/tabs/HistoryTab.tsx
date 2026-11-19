@@ -611,9 +611,13 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   </p>
                   <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] divide-y divide-slate-100 overflow-hidden">
                     {grp.items.map((trx) => {
-                      const cat = categories.find(
-                        (c) => c.id === trx.categoryId
-                      );
+                      const cat =
+                        categories.find((c) => c.id === trx.categoryId) ||
+                        categories.find(
+                          (c) =>
+                            c.name.trim().toLowerCase() ===
+                            trx.categoryName.trim().toLowerCase()
+                        );
                       return (
                         <div
                           key={trx.id}

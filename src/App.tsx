@@ -407,6 +407,11 @@ export default function App() {
     commitDb((prev) => ({
       ...prev,
       categories: [...prev.categories, cat],
+      gallery: cat.driveItemId
+        ? prev.gallery.map((g) =>
+            g.id === cat.driveItemId ? { ...g, categoryRefId: cat.id } : g
+          )
+        : prev.gallery,
     }));
     notify('success', `Kategori "${cat.name}" ditambahkan`);
   };
@@ -417,6 +422,15 @@ export default function App() {
       categories: prev.categories.map((c) =>
         c.id === updatedCat.id ? updatedCat : c
       ),
+      gallery: prev.gallery.map((g) => {
+        if (updatedCat.driveItemId && g.id === updatedCat.driveItemId) {
+          return { ...g, categoryRefId: updatedCat.id };
+        }
+        if (g.categoryRefId === updatedCat.id && g.id !== updatedCat.driveItemId) {
+          return { ...g, categoryRefId: undefined };
+        }
+        return g;
+      }),
       transactions: prev.transactions.map((t) =>
         t.categoryId === updatedCat.id
           ? { ...t, categoryName: updatedCat.name }
@@ -449,6 +463,11 @@ export default function App() {
           return {
             ...prev,
             categories: prev.categories.filter((c) => c.id !== cat.id),
+            gallery: prev.gallery.map((g) =>
+              g.categoryRefId === cat.id
+                ? { ...g, categoryRefId: undefined }
+                : g
+            ),
             transactions: prev.transactions.map((t) =>
               t.categoryId === cat.id
                 ? {
@@ -584,9 +603,19 @@ export default function App() {
               : c
           )
         : prev.categories;
+      const nextGallery = item.categoryRefId
+        ? [
+            item,
+            ...prev.gallery.map((g) =>
+              g.categoryRefId === item.categoryRefId
+                ? { ...g, categoryRefId: undefined }
+                : g
+            ),
+          ]
+        : [item, ...prev.gallery];
       return {
         ...prev,
-        gallery: [item, ...prev.gallery],
+        gallery: nextGallery,
         categories: nextCategories,
       };
     });
@@ -611,11 +640,15 @@ export default function App() {
       const item = prev.gallery.find((g) => g.id === itemId);
       return {
         ...prev,
-        gallery: prev.gallery.map((g) =>
-          g.id === itemId
-            ? { ...g, categoryRefId: categoryId || undefined }
-            : g
-        ),
+        gallery: prev.gallery.map((g) => {
+          if (g.id === itemId) {
+            return { ...g, categoryRefId: categoryId || undefined };
+          }
+          if (categoryId && g.categoryRefId === categoryId) {
+            return { ...g, categoryRefId: undefined };
+          }
+          return g;
+        }),
         categories: prev.categories.map((c) => {
           if (c.id === categoryId && item) {
             return { ...c, driveItemId: item.id, imageUrl: item.directUrl };

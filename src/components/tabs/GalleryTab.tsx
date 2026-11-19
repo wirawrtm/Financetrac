@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Image as ImageIcon, Link2, Plus, Trash2 } from 'lucide-react';
 import { Category, DriveImageItem } from '../../types/finance';
-import { generateId, parseGoogleDriveUrl } from '../../utils/formatters';
+import {
+  generateId,
+  getImageCandidateUrls,
+  parseGoogleDriveUrl,
+} from '../../utils/formatters';
 
 interface GalleryTabProps {
   gallery: DriveImageItem[];
@@ -13,10 +17,22 @@ interface GalleryTabProps {
 }
 
 const GalleryPreviewImage: React.FC<{ item: DriveImageItem }> = ({ item }) => {
-  const [srcIdx, setSrcIdx] = useState(0);
-  const candidates = [item.directUrl, item.fallbackUrl].filter(
-    (u) => typeof u === 'string' && u.trim().length > 0
+  const candidates = useMemo(
+    () =>
+      getImageCandidateUrls({
+        fileId: item.fileId,
+        rawUrl: item.rawUrl,
+        directUrl: item.directUrl,
+        fallbackUrl: item.fallbackUrl,
+      }),
+    [item.fileId, item.rawUrl, item.directUrl, item.fallbackUrl]
   );
+  const candidatesKey = candidates.join('|');
+  const [srcIdx, setSrcIdx] = useState(0);
+
+  useEffect(() => {
+    setSrcIdx(0);
+  }, [candidatesKey]);
 
   const activeSrc = candidates[srcIdx] || '';
 
@@ -151,16 +167,31 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
         </div>
 
         {rawUrl.trim() && (
-          <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-xs space-y-1">
-            <p className="text-slate-600">
-              File ID:{' '}
-              <span className="font-mono font-semibold text-slate-900">
-                {parsedPreview.fileId || 'URL non-Drive langsung'}
-              </span>
-            </p>
-            <p className="text-slate-500 truncate font-mono">
-              Direct URL: {parsedPreview.directUrl}
-            </p>
+          <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-xs flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full overflow-hidden border border-slate-200 bg-white shrink-0">
+              <GalleryPreviewImage
+                item={{
+                  id: 'preview',
+                  name: name || 'Preview',
+                  rawUrl: rawUrl.trim(),
+                  directUrl: parsedPreview.directUrl,
+                  fallbackUrl: parsedPreview.fallbackUrl,
+                  fileId: parsedPreview.fileId,
+                  createdAt: 0,
+                }}
+              />
+            </div>
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="text-slate-600">
+                File ID:{' '}
+                <span className="font-mono font-semibold text-slate-900">
+                  {parsedPreview.fileId || 'URL non-Drive langsung'}
+                </span>
+              </p>
+              <p className="text-slate-500 truncate font-mono">
+                Direct URL: {parsedPreview.directUrl}
+              </p>
+            </div>
           </div>
         )}
 
