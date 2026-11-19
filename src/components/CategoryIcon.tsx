@@ -81,6 +81,7 @@ interface CategoryIconProps {
   gallery?: DriveImageItem[];
   size?: 'xs' | 'sm' | 'md' | 'lg';
   variant?: 'default' | 'card-bleed';
+  bleedOffsetClass?: string;
 }
 
 export const CategoryIcon: React.FC<CategoryIconProps> = ({
@@ -88,6 +89,7 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({
   gallery = [],
   size = 'md',
   variant = 'default',
+  bleedOffsetClass = '-ml-3',
 }) => {
   const sizeClass =
     size === 'xs'
@@ -146,7 +148,7 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({
       <div
         className={
           isCardBleed
-            ? 'w-16 sm:w-[68px] self-stretch shrink-0 -ml-3 bg-transparent flex items-center justify-center overflow-visible'
+            ? `w-16 sm:w-[68px] self-stretch shrink-0 ${bleedOffsetClass} bg-transparent flex items-center justify-center overflow-visible`
             : `${sizeClass} shrink-0 bg-transparent flex items-center justify-center`
         }
       >
@@ -165,7 +167,7 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({
     <div
       className={
         isCardBleed
-          ? 'w-14 sm:w-16 self-stretch shrink-0 -ml-2.5 sm:-ml-3 rounded-xl flex items-center justify-center text-white font-semibold shadow-xs'
+          ? `w-16 sm:w-[68px] self-stretch shrink-0 ${bleedOffsetClass} rounded-xl flex items-center justify-center text-white font-semibold shadow-xs`
           : `${sizeClass} rounded-full shrink-0 flex items-center justify-center text-white font-semibold shadow-xs`
       }
       style={{ backgroundColor: color }}
