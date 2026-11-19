@@ -148,7 +148,7 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({
       <div
         className={
           isCardBleed
-            ? `w-16 sm:w-[68px] self-stretch shrink-0 ${bleedOffsetClass} bg-transparent flex items-center justify-center overflow-visible`
+            ? `w-[52px] sm:w-14 self-stretch shrink-0 ${bleedOffsetClass} bg-transparent flex items-center justify-center overflow-visible`
             : `${sizeClass} shrink-0 bg-transparent flex items-center justify-center`
         }
       >
@@ -167,7 +167,7 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({
     <div
       className={
         isCardBleed
-          ? `w-16 sm:w-[68px] self-stretch shrink-0 ${bleedOffsetClass} rounded-xl flex items-center justify-center text-white font-semibold shadow-xs`
+          ? `w-[52px] sm:w-14 self-stretch shrink-0 ${bleedOffsetClass} rounded-xl flex items-center justify-center text-white font-semibold shadow-xs`
           : `${sizeClass} rounded-full shrink-0 flex items-center justify-center text-white font-semibold shadow-xs`
       }
       style={{ backgroundColor: color }}

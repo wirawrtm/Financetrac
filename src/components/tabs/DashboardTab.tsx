@@ -436,7 +436,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                   <p className="text-xs font-semibold text-slate-400 mb-2">
                     {grp.label}
                   </p>
-                  <div className="ml-4 sm:ml-[17px] rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] divide-y divide-slate-100 overflow-visible">
+                  <div className="ml-[26px] sm:ml-7 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] divide-y divide-slate-100 overflow-visible">
                     {grp.items.map((trx) => {
                       const cat =
                         categories.find((c) => c.id === trx.categoryId) ||
@@ -460,7 +460,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                               gallery={gallery}
                               size="md"
                               variant="card-bleed"
-                              bleedOffsetClass="-ml-4 sm:-ml-[17px]"
+                              bleedOffsetClass="-ml-[26px] sm:-ml-7"
                             />
                             <div className="min-w-0 flex-1 py-3 sm:py-3.5 flex flex-col justify-center">
                               <p className="text-sm font-semibold text-slate-900 truncate">
