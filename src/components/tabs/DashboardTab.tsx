@@ -1220,6 +1220,13 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                   );
                   const isExpanded =
                     expandedCategories[item.categoryId] ?? false;
+                  const catObj =
+                    categories.find((c) => c.id === item.categoryId) ||
+                    categories.find(
+                      (c) =>
+                        c.name.trim().toLowerCase() ===
+                        item.categoryName.trim().toLowerCase()
+                    );
 
                   return (
                     <div
@@ -1239,15 +1246,16 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                         aria-expanded={isExpanded}
                         className="w-full flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs rounded-lg py-0.5 hover:bg-white/70 transition-colors text-left"
                       >
-                        <span className="inline-flex items-center gap-1.5 min-w-0">
+                        <span className="inline-flex items-center gap-2 min-w-0">
                           {isExpanded ? (
                             <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           ) : (
                             <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           )}
-                          <span
-                            className="w-2 h-2 rounded-full shrink-0"
-                            style={{ backgroundColor: item.color }}
+                          <CategoryIcon
+                            category={catObj}
+                            gallery={gallery}
+                            size="xs"
                           />
                           <span className="font-semibold text-slate-800 truncate">
                             {item.categoryName}

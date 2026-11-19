@@ -79,7 +79,7 @@ export function renderLucideCategoryIcon(iconName: string, className = 'w-4 h-4'
 interface CategoryIconProps {
   category?: Category;
   gallery?: DriveImageItem[];
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 export const CategoryIcon: React.FC<CategoryIconProps> = ({
@@ -88,14 +88,22 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({
   size = 'md',
 }) => {
   const sizeClass =
-    size === 'sm'
+    size === 'xs'
+      ? 'w-6 h-6'
+      : size === 'sm'
       ? 'w-8 h-8'
       : size === 'lg'
       ? 'w-11 h-11'
       : 'w-10 h-10';
 
   const iconSize =
-    size === 'sm' ? 'w-3.5 h-3.5' : size === 'lg' ? 'w-5 h-5' : 'w-4 h-4';
+    size === 'xs'
+      ? 'w-3 h-3'
+      : size === 'sm'
+      ? 'w-3.5 h-3.5'
+      : size === 'lg'
+      ? 'w-5 h-5'
+      : 'w-4 h-4';
 
   const linkedDrive = category?.driveItemId
     ? gallery.find((g) => g.id === category.driveItemId)
