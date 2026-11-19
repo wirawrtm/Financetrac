@@ -263,14 +263,21 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   }, [filteredTransactions]);
 
   const groupedTransactions = useMemo(() => {
-    const groups: { dateKey: string; label: string; items: Transaction[] }[] =
-      [];
+    const groups: {
+      dateKey: string;
+      label: string;
+      net: number;
+      items: Transaction[];
+    }[] = [];
     for (const t of filteredTransactions) {
       const dateKey = t.date;
       let grp = groups.find((g) => g.dateKey === dateKey);
       if (!grp) {
-        grp = { dateKey, label: formatDateID(dateKey), items: [] };
+        grp = { dateKey, label: formatDateID(dateKey), net: 0, items: [] };
         groups.push(grp);
+      }
+      if (!isSavingCategoryTransaction(t)) {
+        grp.net += t.type === 'income' ? t.amount : -t.amount;
       }
       grp.items.push(t);
     }
@@ -583,8 +590,24 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             <div className="space-y-4">
               {groupedTransactions.map((grp) => (
                 <div key={grp.dateKey}>
-                  <p className="text-xs font-semibold text-slate-400 mb-2">
-                    {grp.label}
+                  <p className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-400 mb-2">
+                    <span>{grp.label}</span>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-lg border text-[11px] font-mono font-semibold tabular-nums ${
+                        grp.net < 0
+                          ? 'bg-red-50 border-red-100 text-[#D9463E]'
+                          : grp.net > 0
+                          ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                          : 'bg-slate-100 border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {grp.net === 0
+                        ? formatCurrency(0, currency)
+                        : formatCurrency(Math.abs(grp.net), currency, {
+                            showSign: true,
+                            type: grp.net < 0 ? 'expense' : 'income',
+                          })}
+                    </span>
                   </p>
                   <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] divide-y divide-slate-100 overflow-hidden">
                     {grp.items.map((trx) => {
