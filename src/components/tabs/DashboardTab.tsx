@@ -436,7 +436,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                   <p className="text-xs font-semibold text-slate-400 mb-2">
                     {grp.label}
                   </p>
-                  <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] divide-y divide-slate-100 overflow-hidden">
+                  <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] divide-y divide-slate-100 overflow-visible">
                     {grp.items.map((trx) => {
                       const cat =
                         categories.find((c) => c.id === trx.categoryId) ||
@@ -448,19 +448,20 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       return (
                         <div
                           key={trx.id}
-                          className="group flex items-center justify-between gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-3 sm:py-3.5 hover:bg-slate-50/70 transition-colors"
+                          className="group flex items-stretch justify-between gap-2.5 sm:gap-3 pr-3.5 sm:pr-4 pl-0 py-0 overflow-visible first:rounded-t-2xl last:rounded-b-2xl hover:bg-slate-50/70 transition-colors"
                         >
                           <button
                             type="button"
                             onClick={() => onEditTransaction(trx)}
-                            className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                            className="flex items-stretch gap-2.5 sm:gap-3 min-w-0 flex-1 text-left"
                           >
                             <CategoryIcon
                               category={cat}
                               gallery={gallery}
                               size="md"
+                              variant="card-bleed"
                             />
-                            <div className="min-w-0 flex-1">
+                            <div className="min-w-0 flex-1 py-3 sm:py-3.5 flex flex-col justify-center">
                               <p className="text-sm font-semibold text-slate-900 truncate">
                                 {trx.notes}
                               </p>
@@ -471,7 +472,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                             </div>
                           </button>
 
-                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 py-3 sm:py-3.5">
                             <div className="text-right min-w-0">
                               <p
                                 className={`text-sm font-semibold tabular-nums whitespace-nowrap ${

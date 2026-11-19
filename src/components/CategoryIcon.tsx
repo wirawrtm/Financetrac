@@ -80,12 +80,14 @@ interface CategoryIconProps {
   category?: Category;
   gallery?: DriveImageItem[];
   size?: 'xs' | 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'card-bleed';
 }
 
 export const CategoryIcon: React.FC<CategoryIconProps> = ({
   category,
   gallery = [],
   size = 'md',
+  variant = 'default',
 }) => {
   const sizeClass =
     size === 'xs'
@@ -137,10 +139,16 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({
   const activeImageUrl = candidateUrls[srcIdx] || '';
   const color = category?.color || '#64748B';
 
+  const isCardBleed = variant === 'card-bleed';
+
   if (activeImageUrl) {
     return (
       <div
-        className={`${sizeClass} shrink-0 bg-transparent flex items-center justify-center`}
+        className={
+          isCardBleed
+            ? 'w-16 sm:w-[68px] self-stretch shrink-0 -ml-3 bg-transparent flex items-center justify-center overflow-visible'
+            : `${sizeClass} shrink-0 bg-transparent flex items-center justify-center`
+        }
       >
         <img
           src={activeImageUrl}
@@ -155,11 +163,18 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({
 
   return (
     <div
-      className={`${sizeClass} rounded-full shrink-0 flex items-center justify-center text-white font-semibold shadow-xs`}
+      className={
+        isCardBleed
+          ? 'w-14 sm:w-16 self-stretch shrink-0 -ml-2.5 sm:-ml-3 rounded-xl flex items-center justify-center text-white font-semibold shadow-xs'
+          : `${sizeClass} rounded-full shrink-0 flex items-center justify-center text-white font-semibold shadow-xs`
+      }
       style={{ backgroundColor: color }}
       aria-hidden="true"
     >
-      {renderLucideCategoryIcon(category?.icon || 'Layers', iconSize)}
+      {renderLucideCategoryIcon(
+        category?.icon || 'Layers',
+        isCardBleed ? 'w-5 h-5' : iconSize
+      )}
     </div>
   );
 };
