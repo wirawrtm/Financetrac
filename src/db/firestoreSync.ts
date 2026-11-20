@@ -673,8 +673,8 @@ function isLegacyDummyTransactionDoc(id: string, notes: unknown): boolean {
 }
 
 /**
- * Subscribes immediately in parallel to all 4 user Firestore paths (no blocking getDoc waterfall)
- * and handles workspace bootstrap / legacy dummy cleanup asynchronously.
+ * Subscribes in parallel via a single multiplexed Watch stream to all 4 user Firestore paths
+ * and handles workspace bootstrap / legacy dummy cleanup without premature cache-empty emissions.
  */
 export function initializeAndSubscribeCloud(
   userId: string,
@@ -698,6 +698,11 @@ export function initializeAndSubscribeCloud(
   let didBootstrap = false;
   let didCleanWorkspace = false;
   let didPurgeLegacyDummyTrx = false;
+
+  let wsEmitted = false;
+  let trxEmitted = false;
+  let catEmitted = false;
+  let galEmitted = false;
 
   let active = true;
 
@@ -819,51 +824,33 @@ export function initializeAndSubscribeCloud(
     where('ownerId', '==', userId)
   );
 
-  // Fast one-shot parallel read so initial load never stalls on WebChannel stream startup
-  void (async () => {
-    const [wsRes, trxRes, catRes, galRes] = await Promise.allSettled([
-      getDoc(workspaceRef),
-      getDocs(trxQuery),
-      getDocs(catQuery),
-      getDocs(galQuery),
-    ]);
-    if (!active) return;
-
-    if (wsRes.status === 'fulfilled' && wsRes.value.exists()) {
-      knownWorkspaceUsers.add(userId);
-      emitWorkspaceData(wsRes.value.data());
-    }
-    if (trxRes.status === 'fulfilled') {
-      callbacks.onTransactionsUpdate(mapTransactions(trxRes.value.docs));
-    }
-    if (catRes.status === 'fulfilled') {
-      callbacks.onCategoriesUpdate(mapCategories(catRes.value.docs));
-    }
-    if (galRes.status === 'fulfilled') {
-      callbacks.onGalleryUpdate(mapGallery(galRes.value.docs));
-    }
-  })();
-
   const unsubWorkspace = onSnapshot(
     workspaceRef,
+    { includeMetadataChanges: true },
     (snap) => {
       if (!active) return;
       if (!snap.exists()) {
         if (!snap.metadata.fromCache && !didBootstrap) {
           didBootstrap = true;
-          callbacks.onWorkspaceUpdate({
-            weeklyBudgets: cleanInitialDb.weeklyBudgets,
-            weeklyDateRanges: cleanInitialDb.weeklyDateRanges,
-            customCalendarPeriod: cleanInitialDb.customCalendarPeriod,
-            historyAmountIcons:
-              cleanInitialDb.historyAmountIcons || DEFAULT_HISTORY_AMOUNT_ICONS,
-          });
-          callbacks.onCategoriesUpdate(cleanInitialDb.categories);
           void pushFullDatabaseToCloud(userId, cleanInitialDb)
             .then(() => {
+              if (!active) return;
+              wsEmitted = true;
+              callbacks.onWorkspaceUpdate({
+                weeklyBudgets: cleanInitialDb.weeklyBudgets,
+                weeklyDateRanges: cleanInitialDb.weeklyDateRanges,
+                customCalendarPeriod: cleanInitialDb.customCalendarPeriod,
+                historyAmountIcons:
+                  cleanInitialDb.historyAmountIcons ||
+                  DEFAULT_HISTORY_AMOUNT_ICONS,
+              });
+              callbacks.onCategoriesUpdate(cleanInitialDb.categories);
+              callbacks.onGalleryUpdate(cleanInitialDb.gallery);
+              callbacks.onTransactionsUpdate(cleanInitialDb.transactions);
               callbacks.onBootstrappedNewWorkspace?.();
             })
             .catch((err) => {
+              if (!active) return;
               callbacks.onError(
                 err instanceof Error ? err : new Error(String(err))
               );
@@ -907,7 +894,10 @@ export function initializeAndSubscribeCloud(
         }
       }
 
-      emitWorkspaceData(d);
+      if (!wsEmitted || !snap.metadata.hasPendingWrites) {
+        wsEmitted = true;
+        emitWorkspaceData(d);
+      }
     },
     (error) => {
       try {
@@ -922,34 +912,38 @@ export function initializeAndSubscribeCloud(
 
   const unsubTrx = onSnapshot(
     trxQuery,
+    { includeMetadataChanges: true },
     (snap) => {
       if (!active) return;
-      const dummyRefsToDelete = !didPurgeLegacyDummyTrx
-        ? snap.docs
-            .filter((docSnap) =>
-              isLegacyDummyTransactionDoc(docSnap.id, docSnap.data().notes)
-            )
-            .map((docSnap) => docSnap.ref)
-        : [];
+      const isReady = snap.docs.length > 0 || !snap.metadata.fromCache;
+      if (!isReady) return;
+      if (trxEmitted && snap.docChanges().length === 0) return;
 
-      if (dummyRefsToDelete.length > 0 && !didPurgeLegacyDummyTrx) {
+      if (!snap.metadata.fromCache && !didPurgeLegacyDummyTrx) {
+        const dummyRefsToDelete = snap.docs
+          .filter((docSnap) =>
+            isLegacyDummyTransactionDoc(docSnap.id, docSnap.data().notes)
+          )
+          .map((docSnap) => docSnap.ref);
+
         didPurgeLegacyDummyTrx = true;
-        void (async () => {
-          for (let i = 0; i < dummyRefsToDelete.length; i += BATCH_LIMIT) {
-            const batch = writeBatch(db);
-            for (const ref of dummyRefsToDelete.slice(i, i + BATCH_LIMIT)) {
-              batch.delete(ref);
+        if (dummyRefsToDelete.length > 0) {
+          void (async () => {
+            for (let i = 0; i < dummyRefsToDelete.length; i += BATCH_LIMIT) {
+              const batch = writeBatch(db);
+              for (const ref of dummyRefsToDelete.slice(i, i + BATCH_LIMIT)) {
+                batch.delete(ref);
+              }
+              await batch.commit();
             }
-            await batch.commit();
-          }
-          callbacks.onPurgedDummyData?.(dummyRefsToDelete.length);
-        })().catch(() => {
-          // Non-fatal background cleanup error
-        });
-      } else {
-        didPurgeLegacyDummyTrx = true;
+            callbacks.onPurgedDummyData?.(dummyRefsToDelete.length);
+          })().catch(() => {
+            // Non-fatal background cleanup error
+          });
+        }
       }
 
+      trxEmitted = true;
       callbacks.onTransactionsUpdate(mapTransactions(snap.docs));
     },
     (error) => {
@@ -969,8 +963,14 @@ export function initializeAndSubscribeCloud(
 
   const unsubCat = onSnapshot(
     catQuery,
+    { includeMetadataChanges: true },
     (snap) => {
       if (!active) return;
+      const isReady = snap.docs.length > 0 || !snap.metadata.fromCache;
+      if (!isReady) return;
+      if (catEmitted && snap.docChanges().length === 0) return;
+
+      catEmitted = true;
       callbacks.onCategoriesUpdate(mapCategories(snap.docs));
     },
     (error) => {
@@ -990,8 +990,14 @@ export function initializeAndSubscribeCloud(
 
   const unsubGal = onSnapshot(
     galQuery,
+    { includeMetadataChanges: true },
     (snap) => {
       if (!active) return;
+      const isReady = snap.docs.length > 0 || !snap.metadata.fromCache;
+      if (!isReady) return;
+      if (galEmitted && snap.docChanges().length === 0) return;
+
+      galEmitted = true;
       callbacks.onGalleryUpdate(mapGallery(snap.docs));
     },
     (error) => {

@@ -7,6 +7,8 @@ import {
   getFirestore,
   initializeFirestore,
   memoryLocalCache,
+  persistentLocalCache,
+  persistentMultipleTabManager,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -20,13 +22,24 @@ function createFirestoreInstance(): Firestore {
     return initializeFirestore(
       app,
       {
-        localCache: memoryLocalCache(),
-        experimentalAutoDetectLongPolling: true,
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
       },
       firebaseConfig.firestoreDatabaseId
     );
   } catch {
-    return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+    try {
+      return initializeFirestore(
+        app,
+        {
+          localCache: memoryLocalCache(),
+        },
+        firebaseConfig.firestoreDatabaseId
+      );
+    } catch {
+      return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+    }
   }
 }
 
@@ -98,10 +111,4 @@ async function testConnection() {
   }
 }
 
-if (typeof window !== 'undefined') {
-  setTimeout(() => {
-    void testConnection();
-  }, 800);
-} else {
-  void testConnection();
-}
+void testConnection();

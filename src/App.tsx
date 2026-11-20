@@ -1,17 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AlertCircle,
   BarChart3,
   CalendarDays,
-  Cloud,
   Database,
   FolderTree,
   Home,
   Image as ImageIcon,
+  Loader2,
   Lock,
   Menu,
   Monitor,
   Plus,
   PlusCircle,
+  RefreshCw,
   ShieldCheck,
   Smartphone,
   X,
@@ -104,6 +106,15 @@ export default function App() {
   });
   const dbRef = useRef<DummyDatabase>(db);
   const [cloudLoaded, setCloudLoaded] = useState(false);
+  const [cloudError, setCloudError] = useState<string | null>(null);
+  const [cloudRetryTick, setCloudRetryTick] = useState(0);
+  const [loadingSlowHint, setLoadingSlowHint] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState({
+    ws: false,
+    trx: false,
+    cat: false,
+    gal: false,
+  });
   const [isCloudBusy, setIsCloudBusy] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
   const [editingTransaction, setEditingTransaction] =
@@ -165,27 +176,35 @@ export default function App() {
   );
 
   // Subscribe directly to the permanent public Firestore workspace
+  // Stay on the loading screen until workspace, transactions, categories, and gallery are all ready.
   useEffect(() => {
     let cancelled = false;
     setCloudLoaded(false);
+    setCloudError(null);
+    setLoadingSlowHint(false);
+    setLoadingProgress({ ws: false, trx: false, cat: false, gal: false });
 
-    const ready = { ws: false, trx: false, cat: false };
+    const ready = { ws: false, trx: false, cat: false, gal: false };
     let settled = false;
     const markReady = (part: keyof typeof ready) => {
-      ready[part] = true;
-      if (!settled && ready.ws && ready.trx && ready.cat) {
+      if (cancelled) return;
+      if (!ready[part]) {
+        ready[part] = true;
+        setLoadingProgress({ ...ready });
+      }
+      if (!settled && ready.ws && ready.trx && ready.cat && ready.gal) {
         settled = true;
-        clearTimeout(safetyTimer);
+        clearTimeout(slowHintTimer);
+        setCloudError(null);
         setCloudLoaded(true);
       }
     };
 
-    const safetyTimer = setTimeout(() => {
+    const slowHintTimer = setTimeout(() => {
       if (!cancelled && !settled) {
-        settled = true;
-        setCloudLoaded(true);
+        setLoadingSlowHint(true);
       }
-    }, 4500);
+    }, 6000);
 
     const applyCloudPatch = (updater: (prev: DummyDatabase) => DummyDatabase) => {
       const next = updater(dbRef.current);
@@ -217,33 +236,32 @@ export default function App() {
         },
         onCategoriesUpdate: (categories) => {
           if (cancelled) return;
-          if (categories.length > 0) {
-            const { categories: normalizedCategories, changed } =
-              ensureProtectedSavingSubcategory(categories);
-            applyCloudPatch((prev) => ({
-              ...prev,
+          const { categories: normalizedCategories, changed } =
+            ensureProtectedSavingSubcategory(categories);
+          applyCloudPatch((prev) => ({
+            ...prev,
+            categories: normalizedCategories,
+          }));
+          if (changed) {
+            const prevSnapshot = { ...dbRef.current, categories };
+            const nextSnapshot = {
+              ...dbRef.current,
               categories: normalizedCategories,
-            }));
-            if (changed) {
-              const prevSnapshot = { ...dbRef.current, categories };
-              const nextSnapshot = {
-                ...dbRef.current,
-                categories: normalizedCategories,
-              };
-              void syncDiffToFirestore(
-                PRIMARY_WORKSPACE_UID,
-                prevSnapshot,
-                nextSnapshot
-              ).catch(() => {
-                // Non-fatal: UI already has normalized Saving subcategory
-              });
-            }
+            };
+            void syncDiffToFirestore(
+              PRIMARY_WORKSPACE_UID,
+              prevSnapshot,
+              nextSnapshot
+            ).catch(() => {
+              // Non-fatal: UI already has normalized Saving subcategory
+            });
           }
           markReady('cat');
         },
         onGalleryUpdate: (gallery) => {
           if (cancelled) return;
           applyCloudPatch((prev) => ({ ...prev, gallery }));
+          markReady('gal');
         },
         onBootstrappedNewWorkspace: () => {
           if (cancelled) return;
@@ -263,9 +281,12 @@ export default function App() {
         },
         onError: (err) => {
           if (cancelled) return;
-          settled = true;
-          clearTimeout(safetyTimer);
-          setCloudLoaded(true);
+          clearTimeout(slowHintTimer);
+          if (!settled) {
+            setCloudError(
+              err.message || 'Gagal mengambil data dari Cloud Firestore.'
+            );
+          }
           notify('error', 'Gagal menyambung ke Firestore', err.message);
         },
       }
@@ -273,10 +294,10 @@ export default function App() {
 
     return () => {
       cancelled = true;
-      clearTimeout(safetyTimer);
+      clearTimeout(slowHintTimer);
       unsubscribeCloud();
     };
-  }, [notify]);
+  }, [notify, cloudRetryTick]);
 
   const handleSyncNowToCloud = async () => {
     setIsCloudBusy(true);
@@ -878,18 +899,80 @@ export default function App() {
 
       {!cloudLoaded ? (
         <div className="min-h-screen flex items-center justify-center p-6">
-          <div className="rounded-2xl bg-white border border-slate-200/80 shadow-sm px-6 py-5 flex items-center gap-3.5 max-w-sm w-full">
-            <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
-              <Cloud className="w-4 h-4 animate-pulse" />
+          <div className="rounded-2xl bg-white border border-slate-200/80 shadow-sm px-6 py-5 max-w-sm w-full space-y-4">
+            <div className="flex items-center gap-3.5">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  cloudError
+                    ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                    : 'bg-slate-900 text-white'
+                }`}
+              >
+                {cloudError ? (
+                  <AlertCircle className="w-5 h-5" />
+                ) : (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-slate-900">
+                  {cloudError
+                    ? 'Koneksi database tertunda'
+                    : 'Memuat data dari database...'}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {cloudError
+                    ? 'Data belum siap. Periksa koneksi lalu coba muat ulang.'
+                    : loadingSlowHint
+                      ? 'Masih menyinkronkan data dari Cloud Firestore...'
+                      : 'Menyiapkan transaksi, kategori, anggaran & galeri'}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-900">
-                Memuat data dari database...
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Menghubungkan ke Cloud Firestore
-              </p>
-            </div>
+
+            {!cloudError && (
+              <div className="space-y-1.5">
+                <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-slate-900 transition-all duration-300"
+                    style={{
+                      width: `${
+                        (([
+                          loadingProgress.ws,
+                          loadingProgress.trx,
+                          loadingProgress.cat,
+                          loadingProgress.gal,
+                        ].filter(Boolean).length || 0) /
+                          4) *
+                        100
+                      }%`,
+                    }}
+                  />
+                </div>
+                <p className="text-[11px] font-medium text-slate-400 text-right tabular-nums">
+                  {
+                    [
+                      loadingProgress.ws,
+                      loadingProgress.trx,
+                      loadingProgress.cat,
+                      loadingProgress.gal,
+                    ].filter(Boolean).length
+                  }{' '}
+                  / 4 bagian data siap
+                </p>
+              </div>
+            )}
+
+            {(cloudError || loadingSlowHint) && (
+              <button
+                type="button"
+                onClick={() => setCloudRetryTick((c) => c + 1)}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Coba Muat Ulang
+              </button>
+            )}
           </div>
         </div>
       ) : isMobileLayout ? (
