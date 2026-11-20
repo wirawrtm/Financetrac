@@ -590,7 +590,7 @@ export default function App() {
       ...prev,
       historyAmountIcons: config,
     }));
-    notify('success', 'Ikon nominal riwayat disimpan');
+    notify('success', 'Ikon nominal disimpan');
   };
 
   const handleUpdateWeeklyRanges = (ranges: WeeklyDateRanges) => {
@@ -734,11 +734,13 @@ export default function App() {
             categories={db.categories}
             weeklyBudgets={db.weeklyBudgets}
             weeklyDateRanges={db.weeklyDateRanges}
+            historyAmountIcons={db.historyAmountIcons}
             currency="IDR"
             gallery={db.gallery}
             isMobileLayout={isMobileLayout}
             onNavigateTab={navigateToTab}
             onOpenMyBca={() => setMyBcaOpen(true)}
+            onUpdateHistoryAmountIcons={handleUpdateHistoryAmountIcons}
             onEditTransaction={handleStartEditTransaction}
             onDeleteTransaction={handleRequestDeleteTransaction}
           />
@@ -757,7 +759,6 @@ export default function App() {
             onUpdateCustomCalendar={handleUpdateCustomCalendar}
             onUpdateWeeklyRanges={handleUpdateWeeklyRanges}
             onUpdateHistoryAmountIcons={handleUpdateHistoryAmountIcons}
-            onNavigateToGallery={() => navigateToTab('gallery')}
             onEditTransaction={handleStartEditTransaction}
             onDeleteTransaction={handleRequestDeleteTransaction}
           />

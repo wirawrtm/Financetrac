@@ -9,6 +9,7 @@ import {
 import {
   Category,
   DriveImageItem,
+  HistoryAmountIconsConfig,
   TabKey,
   Transaction,
   WeekKey,
@@ -24,22 +25,29 @@ import {
   formatShortDateTime,
 } from '../../utils/formatters';
 import {
+  DEFAULT_HISTORY_AMOUNT_ICONS,
   isProtectedSavingTransaction,
   isSavingCategoryTransaction,
 } from '../../db/dummyDb';
 import { CategoryIcon } from '../CategoryIcon';
 import { LeatherWalletCard } from '../LeatherWalletCard';
+import {
+  AmountDirectionIcon,
+  CustomAmountIconsModal,
+} from '../AmountDirectionIcon';
 
 interface DashboardTabProps {
   transactions: Transaction[];
   categories: Category[];
   weeklyBudgets: WeeklyBudgets;
   weeklyDateRanges: WeeklyDateRanges;
+  historyAmountIcons?: HistoryAmountIconsConfig;
   currency?: 'IDR' | 'USD';
   gallery: DriveImageItem[];
   isMobileLayout: boolean;
   onNavigateTab: (tab: TabKey) => void;
   onOpenMyBca: () => void;
+  onUpdateHistoryAmountIcons?: (config: HistoryAmountIconsConfig) => void;
   onEditTransaction: (trx: Transaction) => void;
   onDeleteTransaction: (trx: Transaction) => void;
 }
@@ -88,11 +96,13 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   categories,
   weeklyBudgets,
   weeklyDateRanges,
+  historyAmountIcons = DEFAULT_HISTORY_AMOUNT_ICONS,
   currency = 'IDR',
   gallery,
   isMobileLayout,
   onNavigateTab,
   onOpenMyBca,
+  onUpdateHistoryAmountIcons,
   onEditTransaction,
   onDeleteTransaction,
 }) => {
@@ -118,6 +128,16 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({});
+  const [showIconModal, setShowIconModal] = useState(false);
+  const [focusedIconSide, setFocusedIconSide] = useState<
+    'income' | 'expense' | null
+  >(null);
+
+  const openIconModal = (focusSide: 'income' | 'expense' | null = null) => {
+    if (!onUpdateHistoryAmountIcons) return;
+    setFocusedIconSide(focusSide);
+    setShowIconModal(true);
+  };
 
   const summary = useMemo(() => {
     let totalIncome = 0;
@@ -476,16 +496,44 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 py-3 sm:py-3.5">
                             <div className="text-right min-w-0">
                               <p
-                                className={`text-sm font-semibold tabular-nums whitespace-nowrap ${
+                                className={`inline-flex items-center justify-end gap-1 text-sm font-semibold tabular-nums whitespace-nowrap ${
                                   trx.type === 'expense'
                                     ? 'text-[#D9463E]'
                                     : 'text-slate-900'
                                 }`}
                               >
-                                {formatCurrency(trx.amount, currency, {
-                                  showSign: true,
-                                  type: trx.type,
-                                })}
+                                {trx.type === 'expense' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openIconModal('expense')}
+                                    title="Klik untuk ganti ikon pengeluaran"
+                                    aria-label="Ganti ikon pengeluaran"
+                                    className="inline-flex items-center justify-center rounded hover:bg-rose-50 p-0.5 -m-0.5 transition-transform hover:scale-110 cursor-pointer shrink-0"
+                                  >
+                                    <AmountDirectionIcon
+                                      entry={historyAmountIcons.expense}
+                                      gallery={gallery}
+                                      className="w-3.5 h-3.5"
+                                    />
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => openIconModal('income')}
+                                    title="Klik untuk ganti ikon pemasukan"
+                                    aria-label="Ganti ikon pemasukan"
+                                    className="inline-flex items-center justify-center rounded hover:bg-slate-100 p-0.5 -m-0.5 transition-transform hover:scale-110 cursor-pointer shrink-0"
+                                  >
+                                    <AmountDirectionIcon
+                                      entry={historyAmountIcons.income}
+                                      gallery={gallery}
+                                      className="w-3.5 h-3.5"
+                                    />
+                                  </button>
+                                )}
+                                <span>
+                                  {formatCurrency(trx.amount, currency)}
+                                </span>
                               </p>
                               <p className="text-[11px] text-slate-400 truncate max-w-[100px] sm:max-w-[130px] ml-auto">
                                 {trx.categoryName}
@@ -1448,6 +1496,18 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     </>
   );
 
+  const customIconsModal = onUpdateHistoryAmountIcons ? (
+    <CustomAmountIconsModal
+      open={showIconModal}
+      initialIcons={historyAmountIcons}
+      focusedSide={focusedIconSide}
+      gallery={gallery}
+      currency={currency}
+      onClose={() => setShowIconModal(false)}
+      onSave={onUpdateHistoryAmountIcons}
+    />
+  ) : null;
+
   if (isMobileLayout) {
     return (
       <div className="space-y-6">
@@ -1459,20 +1519,24 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             {budgetAndCategorySection}
           </div>
         </div>
+        {customIconsModal}
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      <div className="lg:col-span-5 space-y-6">
-        {walletCardSection}
-        {recentTransactionsSection}
-        {weeklyCashflowSection}
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="lg:col-span-5 space-y-6">
+          {walletCardSection}
+          {recentTransactionsSection}
+          {weeklyCashflowSection}
+        </div>
+        <div className="lg:col-span-7 space-y-6">
+          {budgetAndCategorySection}
+        </div>
       </div>
-      <div className="lg:col-span-7 space-y-6">
-        {budgetAndCategorySection}
-      </div>
-    </div>
+      {customIconsModal}
+    </>
   );
 };
