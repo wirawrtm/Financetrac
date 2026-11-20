@@ -18,11 +18,14 @@ import {
   CustomCalendarPeriod,
   DriveImageItem,
   DummyDatabase,
+  HistoryAmountIconEntry,
+  HistoryAmountIconsConfig,
   Transaction,
   WeekKey,
   WeeklyBudgets,
   WeeklyDateRanges,
 } from '../types/finance';
+import { DEFAULT_HISTORY_AMOUNT_ICONS } from './dummyDb';
 import { OperationType, db, handleFirestoreError } from '../firebase';
 
 const VALID_WEEKS: WeekKey[] = [
@@ -96,10 +99,38 @@ function buildWorkspaceFields(dbState: DummyDatabase) {
     ),
   };
 
+  const sanitizeAmountIconEntry = (
+    entry: Partial<HistoryAmountIconEntry> | undefined,
+    fallbackIcon: string
+  ): HistoryAmountIconEntry => {
+    const out: HistoryAmountIconEntry = {
+      icon: clampString(entry?.icon, 64, fallbackIcon).trim() || fallbackIcon,
+    };
+    if (entry?.driveItemId && entry.driveItemId.trim()) {
+      out.driveItemId = clampString(entry.driveItemId.trim(), 128);
+    }
+    if (entry?.imageUrl && entry.imageUrl.trim()) {
+      out.imageUrl = clampString(entry.imageUrl.trim(), 1000);
+    }
+    return out;
+  };
+
+  const historyAmountIcons: HistoryAmountIconsConfig = {
+    income: sanitizeAmountIconEntry(
+      dbState.historyAmountIcons?.income,
+      DEFAULT_HISTORY_AMOUNT_ICONS.income.icon
+    ),
+    expense: sanitizeAmountIconEntry(
+      dbState.historyAmountIcons?.expense,
+      DEFAULT_HISTORY_AMOUNT_ICONS.expense.icon
+    ),
+  };
+
   return {
     weeklyBudgets,
     weeklyDateRanges,
     customCalendarPeriod,
+    historyAmountIcons,
   };
 }
 
@@ -421,7 +452,9 @@ export async function syncDiffToFirestore(
       JSON.stringify(prev.weeklyDateRanges) !==
         JSON.stringify(next.weeklyDateRanges) ||
       JSON.stringify(prev.customCalendarPeriod) !==
-        JSON.stringify(next.customCalendarPeriod);
+        JSON.stringify(next.customCalendarPeriod) ||
+      JSON.stringify(prev.historyAmountIcons ?? DEFAULT_HISTORY_AMOUNT_ICONS) !==
+        JSON.stringify(next.historyAmountIcons ?? DEFAULT_HISTORY_AMOUNT_ICONS);
 
     if (workspaceChanged) {
       const wsFields = buildWorkspaceFields(next);
@@ -651,6 +684,7 @@ export function initializeAndSubscribeCloud(
       weeklyBudgets: WeeklyBudgets;
       weeklyDateRanges: WeeklyDateRanges;
       customCalendarPeriod: CustomCalendarPeriod;
+      historyAmountIcons: HistoryAmountIconsConfig;
     }) => void;
     onTransactionsUpdate: (transactions: Transaction[]) => void;
     onCategoriesUpdate: (categories: Category[]) => void;
@@ -749,6 +783,9 @@ export function initializeAndSubscribeCloud(
     });
 
   const emitWorkspaceData = (d: Record<string, unknown>) => {
+    const rawIcons = d.historyAmountIcons as
+      | Partial<HistoryAmountIconsConfig>
+      | undefined;
     callbacks.onWorkspaceUpdate({
       weeklyBudgets:
         (d.weeklyBudgets as WeeklyBudgets) || cleanInitialDb.weeklyBudgets,
@@ -758,6 +795,14 @@ export function initializeAndSubscribeCloud(
       customCalendarPeriod:
         (d.customCalendarPeriod as CustomCalendarPeriod) ||
         cleanInitialDb.customCalendarPeriod,
+      historyAmountIcons: {
+        income: rawIcons?.income?.icon
+          ? rawIcons.income
+          : DEFAULT_HISTORY_AMOUNT_ICONS.income,
+        expense: rawIcons?.expense?.icon
+          ? rawIcons.expense
+          : DEFAULT_HISTORY_AMOUNT_ICONS.expense,
+      },
     });
   };
 
@@ -810,6 +855,8 @@ export function initializeAndSubscribeCloud(
             weeklyBudgets: cleanInitialDb.weeklyBudgets,
             weeklyDateRanges: cleanInitialDb.weeklyDateRanges,
             customCalendarPeriod: cleanInitialDb.customCalendarPeriod,
+            historyAmountIcons:
+              cleanInitialDb.historyAmountIcons || DEFAULT_HISTORY_AMOUNT_ICONS,
           });
           callbacks.onCategoriesUpdate(cleanInitialDb.categories);
           void pushFullDatabaseToCloud(userId, cleanInitialDb)

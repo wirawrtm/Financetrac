@@ -3,6 +3,7 @@ import {
   CustomCalendarPeriod,
   DriveImageItem,
   DummyDatabase,
+  HistoryAmountIconsConfig,
   Subcategory,
   Transaction,
   WeeklyBudgets,
@@ -253,6 +254,11 @@ export function clearLegacyDummyStorage(): void {
   }
 }
 
+export const DEFAULT_HISTORY_AMOUNT_ICONS: HistoryAmountIconsConfig = {
+  income: { icon: 'TrendingUp' },
+  expense: { icon: 'TrendingDown' },
+};
+
 export function createEmptyDatabase(): DummyDatabase {
   const { weeklyDateRanges, customCalendarPeriod } = buildCurrentMonthRanges();
   return {
@@ -264,6 +270,7 @@ export function createEmptyDatabase(): DummyDatabase {
     weeklyDateRanges,
     customCalendarPeriod,
     gallery: structuredClone(DEFAULT_GALLERY),
+    historyAmountIcons: structuredClone(DEFAULT_HISTORY_AMOUNT_ICONS),
   };
 }
 
@@ -312,6 +319,9 @@ export function validateImportedDatabase(rawText: string): DummyDatabase {
     weeklyDateRanges: parsed.weeklyDateRanges ?? weeklyDateRanges,
     customCalendarPeriod: parsed.customCalendarPeriod ?? customCalendarPeriod,
     gallery: Array.isArray(parsed.gallery) ? parsed.gallery : [],
+    historyAmountIcons:
+      parsed.historyAmountIcons ??
+      structuredClone(DEFAULT_HISTORY_AMOUNT_ICONS),
   };
 }
 

@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Image as ImageIcon, Link2, Plus, Trash2 } from 'lucide-react';
-import { Category, DriveImageItem } from '../../types/finance';
+import {
+  Category,
+  DriveImageItem,
+  HistoryAmountIconsConfig,
+} from '../../types/finance';
+import { DEFAULT_HISTORY_AMOUNT_ICONS } from '../../db/dummyDb';
 import {
   generateId,
   getImageCandidateUrls,
@@ -10,13 +15,18 @@ import {
 interface GalleryTabProps {
   gallery: DriveImageItem[];
   categories: Category[];
+  historyAmountIcons?: HistoryAmountIconsConfig;
   isMobileLayout?: boolean;
   onAddGalleryItem: (item: DriveImageItem) => void;
   onDeleteGalleryItem: (id: string) => void;
   onLinkToCategory: (itemId: string, categoryId: string) => void;
+  onUpdateHistoryAmountIcons?: (config: HistoryAmountIconsConfig) => void;
 }
 
-const GalleryPreviewImage: React.FC<{ item: DriveImageItem }> = ({ item }) => {
+const GalleryPreviewImage: React.FC<{
+  item: DriveImageItem;
+  compact?: boolean;
+}> = ({ item, compact = false }) => {
   const candidates = useMemo(
     () =>
       getImageCandidateUrls({
@@ -38,20 +48,32 @@ const GalleryPreviewImage: React.FC<{ item: DriveImageItem }> = ({ item }) => {
 
   if (!activeSrc) {
     return (
-      <div className="w-full h-36 rounded-xl bg-slate-100 flex flex-col items-center justify-center text-slate-400">
-        <ImageIcon className="w-6 h-6" />
-        <span className="mt-1 text-[11px]">{item.name}</span>
+      <div
+        className={
+          compact
+            ? 'w-full h-full bg-slate-100 flex items-center justify-center text-slate-400'
+            : 'w-full h-36 rounded-xl bg-slate-100 flex flex-col items-center justify-center text-slate-400'
+        }
+      >
+        <ImageIcon className={compact ? 'w-4 h-4' : 'w-6 h-6'} />
+        {!compact && <span className="mt-1 text-[11px]">{item.name}</span>}
       </div>
     );
   }
 
   return (
-    <div className="w-full h-36 rounded-xl overflow-hidden bg-slate-100 border border-slate-100">
+    <div
+      className={
+        compact
+          ? 'w-full h-full flex items-center justify-center bg-transparent p-1'
+          : 'w-full h-36 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center p-2'
+      }
+    >
       <img
         src={activeSrc}
         alt={item.name}
         referrerPolicy="no-referrer"
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain"
         onError={() => setSrcIdx((prev) => prev + 1)}
       />
     </div>
@@ -61,10 +83,12 @@ const GalleryPreviewImage: React.FC<{ item: DriveImageItem }> = ({ item }) => {
 export const GalleryTab: React.FC<GalleryTabProps> = ({
   gallery,
   categories,
+  historyAmountIcons = DEFAULT_HISTORY_AMOUNT_ICONS,
   isMobileLayout = false,
   onAddGalleryItem,
   onDeleteGalleryItem,
   onLinkToCategory,
+  onUpdateHistoryAmountIcons,
 }) => {
   const [name, setName] = useState('');
   const [rawUrl, setRawUrl] = useState('');
@@ -168,8 +192,9 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
 
         {rawUrl.trim() && (
           <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-xs flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full overflow-hidden border border-slate-200 bg-white shrink-0">
+            <div className="w-11 h-11 rounded-xl overflow-hidden border border-slate-200 bg-white shrink-0">
               <GalleryPreviewImage
+                compact
                 item={{
                   id: 'preview',
                   name: name || 'Preview',
@@ -252,20 +277,84 @@ export const GalleryTab: React.FC<GalleryTabProps> = ({
                 </button>
               </div>
 
-              <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
-                <Link2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <select
-                  value={item.categoryRefId || ''}
-                  onChange={(e) => onLinkToCategory(item.id, e.target.value)}
-                  className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
-                >
-                  <option value="">Belum terhubung ke kategori</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      Kategori: {c.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="pt-2 border-t border-slate-100 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Link2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <select
+                    value={item.categoryRefId || ''}
+                    onChange={(e) => onLinkToCategory(item.id, e.target.value)}
+                    className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
+                  >
+                    <option value="">Belum terhubung ke kategori</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        Kategori: {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {onUpdateHistoryAmountIcons && (
+                  <div className="flex items-center justify-between gap-1.5">
+                    <span className="text-[11px] font-medium text-slate-500 shrink-0">
+                      Ikon Riwayat:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const isCurrent =
+                            historyAmountIcons.income.driveItemId === item.id;
+                          onUpdateHistoryAmountIcons({
+                            ...historyAmountIcons,
+                            income: isCurrent
+                              ? { ...DEFAULT_HISTORY_AMOUNT_ICONS.income }
+                              : {
+                                  icon:
+                                    historyAmountIcons.income.icon ||
+                                    'TrendingUp',
+                                  driveItemId: item.id,
+                                  imageUrl: item.directUrl,
+                                },
+                          });
+                        }}
+                        className={`px-2 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${
+                          historyAmountIcons.income.driveItemId === item.id
+                            ? 'bg-slate-900 text-white border-slate-900'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        Pemasukan (+)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const isCurrent =
+                            historyAmountIcons.expense.driveItemId === item.id;
+                          onUpdateHistoryAmountIcons({
+                            ...historyAmountIcons,
+                            expense: isCurrent
+                              ? { ...DEFAULT_HISTORY_AMOUNT_ICONS.expense }
+                              : {
+                                  icon:
+                                    historyAmountIcons.expense.icon ||
+                                    'TrendingDown',
+                                  driveItemId: item.id,
+                                  imageUrl: item.directUrl,
+                                },
+                          });
+                        }}
+                        className={`px-2 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${
+                          historyAmountIcons.expense.driveItemId === item.id
+                            ? 'bg-[#D9463E] text-white border-[#D9463E]'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        Pengeluaran (-)
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}

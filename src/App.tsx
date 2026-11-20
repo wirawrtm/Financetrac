@@ -26,6 +26,7 @@ import {
   clearLegacyDummyStorage,
   clearTransactionsOnly,
   createEmptyDatabase,
+  DEFAULT_HISTORY_AMOUNT_ICONS,
   ensureProtectedSavingSubcategory,
   isProtectedSavingSubcategory,
   validateImportedDatabase,
@@ -35,6 +36,7 @@ import {
   CustomCalendarPeriod,
   DriveImageItem,
   DummyDatabase,
+  HistoryAmountIconsConfig,
   TabKey,
   ToastMessage,
   Transaction,
@@ -204,6 +206,7 @@ export default function App() {
             weeklyBudgets: patch.weeklyBudgets,
             weeklyDateRanges: patch.weeklyDateRanges,
             customCalendarPeriod: patch.customCalendarPeriod,
+            historyAmountIcons: patch.historyAmountIcons,
           }));
           markReady('ws');
         },
@@ -582,6 +585,14 @@ export default function App() {
     notify('success', 'Kalender periode kustom diperbarui');
   };
 
+  const handleUpdateHistoryAmountIcons = (config: HistoryAmountIconsConfig) => {
+    commitDb((prev) => ({
+      ...prev,
+      historyAmountIcons: config,
+    }));
+    notify('success', 'Ikon nominal riwayat disimpan');
+  };
+
   const handleUpdateWeeklyRanges = (ranges: WeeklyDateRanges) => {
     commitDb((prev) => ({
       ...prev,
@@ -623,15 +634,30 @@ export default function App() {
   };
 
   const handleDeleteGalleryItem = (id: string) => {
-    commitDb((prev) => ({
-      ...prev,
-      gallery: prev.gallery.filter((g) => g.id !== id),
-      categories: prev.categories.map((c) =>
-        c.driveItemId === id
-          ? { ...c, driveItemId: undefined, imageUrl: undefined }
-          : c
-      ),
-    }));
+    commitDb((prev) => {
+      const currentIcons =
+        prev.historyAmountIcons || DEFAULT_HISTORY_AMOUNT_ICONS;
+      const nextIcons: HistoryAmountIconsConfig = {
+        income:
+          currentIcons.income.driveItemId === id
+            ? { ...DEFAULT_HISTORY_AMOUNT_ICONS.income }
+            : currentIcons.income,
+        expense:
+          currentIcons.expense.driveItemId === id
+            ? { ...DEFAULT_HISTORY_AMOUNT_ICONS.expense }
+            : currentIcons.expense,
+      };
+      return {
+        ...prev,
+        gallery: prev.gallery.filter((g) => g.id !== id),
+        categories: prev.categories.map((c) =>
+          c.driveItemId === id
+            ? { ...c, driveItemId: undefined, imageUrl: undefined }
+            : c
+        ),
+        historyAmountIcons: nextIcons,
+      };
+    });
     notify('info', 'Aset dihapus dari galeri');
   };
 
@@ -724,11 +750,14 @@ export default function App() {
             categories={db.categories}
             weeklyDateRanges={db.weeklyDateRanges}
             customCalendarPeriod={db.customCalendarPeriod}
+            historyAmountIcons={db.historyAmountIcons}
             currency="IDR"
             gallery={db.gallery}
             isMobileLayout={isMobileLayout}
             onUpdateCustomCalendar={handleUpdateCustomCalendar}
             onUpdateWeeklyRanges={handleUpdateWeeklyRanges}
+            onUpdateHistoryAmountIcons={handleUpdateHistoryAmountIcons}
+            onNavigateToGallery={() => navigateToTab('gallery')}
             onEditTransaction={handleStartEditTransaction}
             onDeleteTransaction={handleRequestDeleteTransaction}
           />
@@ -784,10 +813,12 @@ export default function App() {
           <GalleryTab
             gallery={db.gallery}
             categories={db.categories}
+            historyAmountIcons={db.historyAmountIcons}
             isMobileLayout={isMobileLayout}
             onAddGalleryItem={handleAddGalleryItem}
             onDeleteGalleryItem={handleDeleteGalleryItem}
             onLinkToCategory={handleLinkGalleryToCategory}
+            onUpdateHistoryAmountIcons={handleUpdateHistoryAmountIcons}
           />
         );
       case 'database':

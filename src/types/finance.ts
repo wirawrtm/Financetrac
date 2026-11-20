@@ -71,6 +71,17 @@ export interface DriveImageItem {
   createdAt: number;
 }
 
+export interface HistoryAmountIconEntry {
+  icon: string;
+  driveItemId?: string;
+  imageUrl?: string;
+}
+
+export interface HistoryAmountIconsConfig {
+  income: HistoryAmountIconEntry;
+  expense: HistoryAmountIconEntry;
+}
+
 export interface DummyDatabase {
   version: number;
   initializedAt: number;
@@ -80,6 +91,7 @@ export interface DummyDatabase {
   weeklyDateRanges: WeeklyDateRanges;
   customCalendarPeriod: CustomCalendarPeriod;
   gallery: DriveImageItem[];
+  historyAmountIcons?: HistoryAmountIconsConfig;
 }
 
 export interface ToastMessage {

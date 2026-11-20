@@ -35,9 +35,26 @@ service cloud.firestore {
         && range.endDate is string && range.endDate.size() <= 20;
     }
 
+    function isValidAmountIconEntry(entry) {
+      return entry is map
+        && entry.keys().hasAll(['icon'])
+        && entry.keys().hasOnly(['icon', 'driveItemId', 'imageUrl'])
+        && entry.icon is string && entry.icon.size() >= 1 && entry.icon.size() <= 64
+        && (!('driveItemId' in entry) || (entry.driveItemId is string && entry.driveItemId.size() <= 128))
+        && (!('imageUrl' in entry) || (entry.imageUrl is string && entry.imageUrl.size() <= 1000));
+    }
+
+    function isValidHistoryAmountIcons(cfg) {
+      return cfg is map
+        && cfg.keys().hasAll(['income', 'expense'])
+        && cfg.keys().hasOnly(['income', 'expense'])
+        && isValidAmountIconEntry(cfg.income)
+        && isValidAmountIconEntry(cfg.expense);
+    }
+
     function isValidUserWorkspace(data) {
       return data.keys().hasAll(['ownerId', 'weeklyBudgets', 'weeklyDateRanges', 'customCalendarPeriod', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['ownerId', 'weeklyBudgets', 'weeklyDateRanges', 'customCalendarPeriod', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'weeklyBudgets', 'weeklyDateRanges', 'customCalendarPeriod', 'historyAmountIcons', 'createdAt', 'updatedAt'])
         && isValidId(data.ownerId)
         && data.ownerId == primaryWorkspaceId()
         && data.weeklyBudgets is map
@@ -64,6 +81,7 @@ service cloud.firestore {
         && data.customCalendarPeriod.endDate is string && data.customCalendarPeriod.endDate.size() <= 20
         && data.customCalendarPeriod.label is string && data.customCalendarPeriod.label.size() <= 100
         && data.customCalendarPeriod.updatedAt is int
+        && (!('historyAmountIcons' in data) || isValidHistoryAmountIcons(data.historyAmountIcons))
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -152,6 +170,7 @@ service cloud.firestore {
           'weeklyBudgets',
           'weeklyDateRanges',
           'customCalendarPeriod',
+          'historyAmountIcons',
           'updatedAt'
         ]);
       allow delete: if false;
