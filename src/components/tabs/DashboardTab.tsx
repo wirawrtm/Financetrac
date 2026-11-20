@@ -367,15 +367,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     return groups;
   }, [transactions]);
 
-  const maxChartVal = useMemo(() => {
-    let max = 1;
-    for (const w of weeklyStats) {
-      if (w.budget > max) max = w.budget;
-      if (w.expense > max) max = w.expense;
-    }
-    return max;
-  }, [weeklyStats]);
-
   const activeRunningWeek = useMemo(() => {
     if (selectedBudgetWeek !== 'Monthly') return selectedBudgetWeek;
     return getCurrentRunningWeek(weeklyDateRanges);
@@ -577,178 +568,107 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     </div>
   );
 
-  const weeklyCashflowSection = (
-    <>
-      {/* Weekly Cashflow Visual Bar Chart */}
-      <div className="rounded-3xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] px-3.5 py-4 sm:p-5 overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-              <div className="min-w-0">
-                <h3 className="text-sm font-bold text-slate-900">
-                  Arus Kas Mingguan
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Perbandingan budget &amp; pengeluaran W1–W4
-                </p>
-              </div>
-              <div className="flex items-center gap-3 text-[11px] text-slate-500 shrink-0">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-900 inline-block" />
-                  Budget
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#D9463E] inline-block" />
-                  Keluar
-                </span>
-              </div>
-            </div>
+  const getWeeklyCoxcombData = () => {
+    const slotStyles = [
+      {
+        startDeg: -90,
+        endDeg: 135,
+        minR: 88,
+        maxR: 110,
+        fill: 'url(#coxcombIceGrad)',
+        solidColor: '#DCE8EC',
+        textClass: 'fill-slate-900',
+        fontSize: 25,
+        labelRadiusRatio: 0.44,
+        labelAngleDeg: 0,
+        hasShadow: true,
+        dotBorder: 'border-slate-300',
+      },
+      {
+        startDeg: 180,
+        endDeg: 270,
+        minR: 72,
+        maxR: 92,
+        fill: '#E71D46',
+        solidColor: '#E71D46',
+        textClass: 'fill-white',
+        fontSize: 17,
+        labelRadiusRatio: 0.56,
+        labelAngleDeg: 225,
+        hasShadow: false,
+        dotBorder: 'border-transparent',
+      },
+      {
+        startDeg: 157,
+        endDeg: 180,
+        minR: 64,
+        maxR: 80,
+        fill: '#37B198',
+        solidColor: '#37B198',
+        textClass: 'fill-white',
+        fontSize: 12,
+        labelRadiusRatio: 0.68,
+        labelAngleDeg: 168.5,
+        hasShadow: false,
+        dotBorder: 'border-transparent',
+      },
+      {
+        startDeg: 135,
+        endDeg: 157,
+        minR: 58,
+        maxR: 74,
+        fill: '#2A373E',
+        solidColor: '#2A373E',
+        textClass: 'fill-white',
+        fontSize: 12,
+        labelRadiusRatio: 0.68,
+        labelAngleDeg: 146,
+        hasShadow: false,
+        dotBorder: 'border-transparent',
+      },
+    ] as const;
 
-            <div className="grid grid-cols-4 gap-1 sm:gap-2 pt-1">
-              {weeklyStats.map((w) => {
-                const budgetHeight =
-                  w.budget > 0
-                    ? Math.max(28, Math.round((w.budget / maxChartVal) * 108))
-                    : 14;
-                const outHeight =
-                  w.expense > 0
-                    ? Math.max(28, Math.round((w.expense / maxChartVal) * 108))
-                    : 14;
-                const isSelected = selectedBudgetWeek === w.week;
-                const hasSelection = selectedBudgetWeek !== 'Monthly';
+    const rankedWeeks = [...weeklyStats].sort((a, b) => b.rawPct - a.rawPct);
+    const maxPct = Math.max(100, ...weeklyStats.map((item) => item.rawPct));
 
-                return (
-                  <button
-                    key={w.week}
-                    type="button"
-                    onClick={() =>
-                      handleSelectBudgetWeek((prev) =>
-                        prev === w.week ? 'Monthly' : w.week
-                      )
-                    }
-                    aria-pressed={isSelected}
-                    className={`min-w-0 flex flex-col items-center rounded-2xl px-0.5 sm:px-1.5 py-2 sm:py-2.5 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
-                      isSelected
-                        ? 'bg-slate-100 ring-2 ring-slate-900 shadow-xs'
-                        : hasSelection
-                        ? 'opacity-65 hover:opacity-100 hover:bg-slate-50'
-                        : 'hover:bg-slate-50'
-                    }`}
-                  >
-                    {/* Top Percentage */}
-                    <span
-                      className={`mb-2 text-[11px] font-bold tabular-nums whitespace-nowrap ${
-                        w.overBudget
-                          ? 'text-[#D9463E]'
-                          : isSelected
-                          ? 'text-slate-900'
-                          : 'text-slate-600'
-                      }`}
-                    >
-                      {formatNumberID(w.rawPct)}%
-                    </span>
+    const cx = 132;
+    const cy = 122;
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const polar = (r: number, deg: number) => ({
+      x: cx + r * Math.cos(toRad(deg)),
+      y: cy + r * Math.sin(toRad(deg)),
+    });
 
-                    {/* Overlapping Thick Rounded Bars */}
-                    <div className="h-32 w-full flex items-end justify-center pb-2.5 border-b border-slate-200/70">
-                      <div
-                        className={`relative z-0 ${
-                          isMobileLayout ? 'w-10' : 'w-10 sm:w-14'
-                        } rounded-full transition-all ${
-                          w.budget > 0 ? 'bg-slate-900' : 'bg-slate-200'
-                        }`}
-                        style={{ height: `${budgetHeight}px` }}
-                        title={`Budget: ${formatCurrency(w.budget, currency)}`}
-                      />
-                      <div
-                        className={`relative z-10 ${
-                          isMobileLayout
-                            ? '-ml-5 w-10'
-                            : '-ml-5 sm:-ml-7 w-10 sm:w-14'
-                        } rounded-full ring-2 ${
-                          isSelected ? 'ring-slate-100' : 'ring-white'
-                        } transition-all ${
-                          w.expense > 0 ? 'bg-[#D9463E]' : 'bg-rose-100'
-                        }`}
-                        style={{ height: `${outHeight}px` }}
-                        title={`Keluar: ${formatCurrency(w.expense, currency)}`}
-                      />
-                    </div>
+    const slices = rankedWeeks.map((stat, rankIdx) => {
+      const style = slotStyles[rankIdx] || slotStyles[3];
+      const ratio = Math.min(1, Math.max(0, stat.rawPct / maxPct));
+      const radius = style.minR + ratio * (style.maxR - style.minR);
+      const pStart = polar(radius, style.startDeg);
+      const pEnd = polar(radius, style.endDeg);
+      const largeArc = style.endDeg - style.startDeg > 180 ? 1 : 0;
+      const d = [
+        `M ${cx} ${cy}`,
+        `L ${pStart.x.toFixed(2)} ${pStart.y.toFixed(2)}`,
+        `A ${radius.toFixed(2)} ${radius.toFixed(2)} 0 ${largeArc} 1 ${pEnd.x.toFixed(2)} ${pEnd.y.toFixed(2)}`,
+        'Z',
+      ].join(' ');
+      const labelPos = polar(
+        radius * style.labelRadiusRatio,
+        style.labelAngleDeg
+      );
 
-                    {/* Week Label & Remaining (Sisa) */}
-                    <span
-                      className={`mt-2 text-xs font-bold ${
-                        isSelected ? 'text-slate-900' : 'text-slate-700'
-                      }`}
-                    >
-                      {w.week.replace('Week ', 'W')}
-                    </span>
-                    <span
-                      className={`max-w-full truncate text-[10px] tabular-nums ${
-                        w.remaining < 0
-                          ? 'text-[#D9463E] font-semibold'
-                          : 'text-slate-500'
-                      }`}
-                      title={`Sisa anggaran: ${formatCurrency(w.remaining, currency)}`}
-                    >
-                      Sisa{' '}
-                      {w.remaining < 0 ? '-' : ''}
-                      {formatCurrency(Math.abs(w.remaining), currency, {
-                        compact: true,
-                      })}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+      return {
+        stat,
+        style,
+        radius,
+        d,
+        labelPos,
+      };
+    });
 
-            {selectedBudgetWeek !== 'Monthly' && (
-              <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                {(() => {
-                  const active = weeklyStats.find(
-                    (item) => item.week === selectedBudgetWeek
-                  );
-                  if (!active) return null;
-                  return (
-                    <>
-                      <span className="text-slate-600 tabular-nums">
-                        <strong className="text-slate-900">{active.week}</strong>{' '}
-                        · Budget{' '}
-                        {formatCurrency(active.budget, currency, {
-                          compact: true,
-                        })}{' '}
-                        · Keluar{' '}
-                        {formatCurrency(active.expense, currency, {
-                          compact: true,
-                        })}{' '}
-                        · Sisa{' '}
-                        <strong
-                          className={
-                            active.remaining < 0
-                              ? 'text-[#D9463E]'
-                              : 'text-emerald-700'
-                          }
-                        >
-                          {active.remaining < 0 ? '-' : ''}
-                          {formatCurrency(
-                            Math.abs(active.remaining),
-                            currency,
-                            { compact: true }
-                          )}
-                        </strong>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleSelectBudgetWeek('Monthly')}
-                        className="text-[11px] font-semibold text-slate-500 hover:text-slate-900"
-                      >
-                        Reset Pilihan
-                      </button>
-                    </>
-                  );
-                })()}
-              </div>
-            )}
-      </div>
-    </>
-  );
+    const colorByWeek = new Map(slices.map((s) => [s.stat.week, s.style]));
+    return { slices, colorByWeek };
+  };
 
   const budgetAndCategorySection = (
     <>
@@ -1124,89 +1044,206 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               })()}
             </div>
 
-            {/* Per-Week Spending Charts & Numbers Summary (W1-W4) */}
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <div
-                className={`grid gap-2 ${
-                  isMobileLayout ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
-                }`}
-              >
-                {weeklyStats.map((w) => {
-                  const isActiveWk = selectedBudgetWeek === w.week;
-                  return (
-                    <button
-                      key={w.week}
-                      type="button"
-                      onClick={() =>
-                        setSelectedBudgetWeek(
-                          isActiveWk ? 'Monthly' : w.week
-                        )
-                      }
-                      className={`min-w-0 text-left rounded-xl px-2.5 py-2 transition-colors ${
-                        isActiveWk
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-slate-50 hover:bg-slate-100 text-slate-900'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-[10px] font-semibold">
-                        <span
-                          className={
-                            isActiveWk ? 'text-slate-300' : 'text-slate-500'
-                          }
-                        >
-                          {w.week.replace('Week ', 'W')}
-                        </span>
-                        <span
-                          className={`font-mono tabular-nums ${
-                            w.overBudget
-                              ? isActiveWk
-                                ? 'text-rose-300'
-                                : 'text-[#D9463E]'
-                              : isActiveWk
-                              ? 'text-slate-300'
-                              : 'text-slate-400'
-                          }`}
-                        >
-                          {formatNumberID(w.rawPct)}%
-                        </span>
-                      </div>
-                      <p className="mt-0.5 text-xs font-mono font-bold tabular-nums truncate">
-                        {formatCurrency(w.expense, currency, {
-                          compact: true,
+            {/* Per-Week Spending Coxcomb Chart (Left) & W1-W4 Summary Cards (Right) */}
+            {(() => {
+              const { slices, colorByWeek } = getWeeklyCoxcombData();
+              return (
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    {/* Left: Variable-Radius Coxcomb Pie Chart */}
+                    <div className="w-[144px] sm:w-[192px] shrink-0 flex items-center justify-center">
+                      <svg
+                        viewBox="0 0 280 252"
+                        className="w-full h-auto overflow-visible select-none"
+                        role="img"
+                        aria-label="Diagram arus kas mingguan W1 sampai W4"
+                      >
+                        <defs>
+                          <linearGradient
+                            id="coxcombIceGrad"
+                            x1="0%"
+                            y1="0%"
+                            x2="100%"
+                            y2="100%"
+                          >
+                            <stop offset="0%" stopColor="#E9F2F5" />
+                            <stop offset="100%" stopColor="#D3E3E9" />
+                          </linearGradient>
+                          <filter
+                            id="coxcombShadow"
+                            x="-25%"
+                            y="-25%"
+                            width="150%"
+                            height="160%"
+                          >
+                            <feDropShadow
+                              dx="0"
+                              dy="8"
+                              stdDeviation="7"
+                              floodColor="#0F172A"
+                              floodOpacity="0.12"
+                            />
+                          </filter>
+                        </defs>
+
+                        {[...slices].reverse().map((slice) => {
+                          const isSelected =
+                            selectedBudgetWeek === slice.stat.week;
+                          const hasSelection = selectedBudgetWeek !== 'Monthly';
+                          const isDimmed = hasSelection && !isSelected;
+
+                          return (
+                            <g
+                              key={slice.stat.week}
+                              onClick={() =>
+                                handleSelectBudgetWeek((prev) =>
+                                  prev === slice.stat.week
+                                    ? 'Monthly'
+                                    : slice.stat.week
+                                )
+                              }
+                              className="cursor-pointer transition-opacity duration-200"
+                              style={{
+                                opacity: isDimmed ? 0.45 : 1,
+                                filter: slice.style.hasShadow
+                                  ? 'url(#coxcombShadow)'
+                                  : undefined,
+                              }}
+                            >
+                              <title>
+                                {`${slice.stat.week}: ${formatNumberID(
+                                  slice.stat.rawPct
+                                )}% (${formatCurrency(
+                                  slice.stat.expense,
+                                  currency
+                                )} / ${formatCurrency(
+                                  slice.stat.budget,
+                                  currency
+                                )})`}
+                              </title>
+                              <path
+                                d={slice.d}
+                                fill={slice.style.fill}
+                                stroke={isSelected ? '#0F172A' : '#FFFFFF'}
+                                strokeWidth={isSelected ? 2.5 : 1}
+                                strokeLinejoin="round"
+                              />
+                              <text
+                                x={slice.labelPos.x}
+                                y={slice.labelPos.y}
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                className={`${slice.style.textClass} font-extrabold tabular-nums pointer-events-none`}
+                                style={{ fontSize: `${slice.style.fontSize}px` }}
+                              >
+                                {slice.style.fontSize >= 20
+                                  ? `${formatNumberID(slice.stat.rawPct)} %`
+                                  : `${formatNumberID(slice.stat.rawPct)}%`}
+                              </text>
+                            </g>
+                          );
                         })}
-                      </p>
-                      <div
-                        className={`mt-1.5 h-1.5 w-full rounded-full overflow-hidden ${
-                          isActiveWk ? 'bg-white/20' : 'bg-slate-200'
-                        }`}
-                      >
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            w.overBudget
-                              ? 'bg-[#D9463E]'
-                              : isActiveWk
-                              ? 'bg-emerald-300'
-                              : 'bg-slate-900'
-                          }`}
-                          style={{ width: `${Math.min(100, w.rawPct)}%` }}
-                        />
-                      </div>
-                      <p
-                        className={`mt-1 text-[10px] tabular-nums truncate ${
-                          isActiveWk
-                            ? 'text-slate-300'
-                            : w.remaining < 0
-                            ? 'text-[#D9463E]'
-                            : 'text-slate-400'
-                        }`}
-                      >
-                        / {formatCurrency(w.budget, currency, { compact: true })}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                      </svg>
+                    </div>
+
+                    {/* Right: W1-W4 Summary Grid */}
+                    <div className="flex-1 min-w-0 grid grid-cols-2 gap-1.5 sm:gap-2">
+                      {weeklyStats.map((w) => {
+                        const isActiveWk = selectedBudgetWeek === w.week;
+                        const weekStyle = colorByWeek.get(w.week);
+                        return (
+                          <button
+                            key={w.week}
+                            type="button"
+                            onClick={() =>
+                              handleSelectBudgetWeek((prev) =>
+                                prev === w.week ? 'Monthly' : w.week
+                              )
+                            }
+                            className={`min-w-0 text-left rounded-xl px-2 py-1.5 sm:px-2.5 sm:py-2 transition-colors ${
+                              isActiveWk
+                                ? 'bg-slate-900 text-white'
+                                : 'bg-slate-50 hover:bg-slate-100 text-slate-900'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1 text-[10px] font-semibold">
+                              <span className="inline-flex items-center gap-1 min-w-0">
+                                <span
+                                  className={`w-2 h-2 rounded-full shrink-0 border ${
+                                    isActiveWk
+                                      ? 'border-white/50'
+                                      : weekStyle?.dotBorder ||
+                                        'border-transparent'
+                                  }`}
+                                  style={{
+                                    backgroundColor:
+                                      weekStyle?.solidColor || '#94A3B8',
+                                  }}
+                                />
+                                <span
+                                  className={
+                                    isActiveWk
+                                      ? 'text-slate-200'
+                                      : 'text-slate-600'
+                                  }
+                                >
+                                  {w.week.replace('Week ', 'W')}
+                                </span>
+                              </span>
+                              <span
+                                className={`font-mono tabular-nums shrink-0 ${
+                                  w.overBudget
+                                    ? isActiveWk
+                                      ? 'text-rose-300'
+                                      : 'text-[#D9463E]'
+                                    : isActiveWk
+                                    ? 'text-slate-300'
+                                    : 'text-slate-400'
+                                }`}
+                              >
+                                {formatNumberID(w.rawPct)}%
+                              </span>
+                            </div>
+                            <p className="mt-0.5 text-[11px] sm:text-xs font-mono font-bold tabular-nums truncate">
+                              {formatCurrency(w.expense, currency, {
+                                compact: true,
+                              })}
+                            </p>
+                            <div
+                              className={`mt-1 h-1.5 w-full rounded-full overflow-hidden ${
+                                isActiveWk ? 'bg-white/20' : 'bg-slate-200'
+                              }`}
+                            >
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  w.overBudget
+                                    ? 'bg-[#D9463E]'
+                                    : isActiveWk
+                                    ? 'bg-emerald-300'
+                                    : 'bg-slate-900'
+                                }`}
+                                style={{ width: `${Math.min(100, w.rawPct)}%` }}
+                              />
+                            </div>
+                            <p
+                              className={`mt-1 text-[9.5px] sm:text-[10px] tabular-nums truncate ${
+                                isActiveWk
+                                  ? 'text-slate-300'
+                                  : w.remaining < 0
+                                  ? 'text-[#D9463E]'
+                                  : 'text-slate-400'
+                              }`}
+                            >
+                              / {formatCurrency(w.budget, currency, { compact: true })}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Separate Card: Rincian Kategori & Sub-Kategori */}
@@ -1515,7 +1552,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         <div className="grid gap-6 grid-cols-1">
           {recentTransactionsSection}
           <div className="space-y-5">
-            {weeklyCashflowSection}
             {budgetAndCategorySection}
           </div>
         </div>
@@ -1530,7 +1566,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         <div className="lg:col-span-5 space-y-6">
           {walletCardSection}
           {recentTransactionsSection}
-          {weeklyCashflowSection}
         </div>
         <div className="lg:col-span-7 space-y-6">
           {budgetAndCategorySection}
