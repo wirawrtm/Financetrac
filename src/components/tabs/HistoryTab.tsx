@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Calendar,
   CalendarRange,
@@ -73,6 +73,9 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   const [weekFilter, setWeekFilter] = useState<'ALL' | WeekKey>('ALL');
   const [typeFilter, setTypeFilter] = useState<'all' | 'expense' | 'income'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const listTopRef = useRef<HTMLDivElement | null>(null);
 
   // Custom calendar modal state
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -285,27 +288,92 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     };
   }, [filteredTransactions]);
 
+  // Reset to page 1 when filters or page size change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    selectedDay,
+    customCalendarPeriod.isActive,
+    customCalendarPeriod.startDate,
+    customCalendarPeriod.endDate,
+    weekFilter,
+    typeFilter,
+    searchQuery,
+    pageSize,
+  ]);
+
+  const totalItems = filteredTransactions.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+
+  useEffect(() => {
+    if (currentPage !== safePage) {
+      setCurrentPage(safePage);
+    }
+  }, [currentPage, safePage]);
+
+  const paginatedTransactions = useMemo(() => {
+    const startIdx = (safePage - 1) * pageSize;
+    return filteredTransactions.slice(startIdx, startIdx + pageSize);
+  }, [filteredTransactions, safePage, pageSize]);
+
+  const pageStartItem = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEndItem = Math.min(totalItems, safePage * pageSize);
+
+  const pageNumbers = useMemo(() => {
+    const pages: Array<number | 'ellipsis-left' | 'ellipsis-right'> = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+      return pages;
+    }
+    pages.push(1);
+    const start = Math.max(2, safePage - 1);
+    const end = Math.min(totalPages - 1, safePage + 1);
+    if (start > 2) pages.push('ellipsis-left');
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < totalPages - 1) pages.push('ellipsis-right');
+    pages.push(totalPages);
+    return pages;
+  }, [safePage, totalPages]);
+
+  const goToPage = (page: number) => {
+    const clamped = Math.max(1, Math.min(totalPages, page));
+    if (clamped === safePage) return;
+    setCurrentPage(clamped);
+    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
   const groupedTransactions = useMemo(() => {
+    // Preserve full filtered daily net even if a day's items span across pages
+    const dayNetMap = new Map<string, number>();
+    for (const t of filteredTransactions) {
+      if (isSavingCategoryTransaction(t)) continue;
+      const prev = dayNetMap.get(t.date) ?? 0;
+      dayNetMap.set(t.date, prev + (t.type === 'income' ? t.amount : -t.amount));
+    }
+
     const groups: {
       dateKey: string;
       label: string;
       net: number;
       items: Transaction[];
     }[] = [];
-    for (const t of filteredTransactions) {
+    for (const t of paginatedTransactions) {
       const dateKey = t.date;
       let grp = groups.find((g) => g.dateKey === dateKey);
       if (!grp) {
-        grp = { dateKey, label: formatDateID(dateKey), net: 0, items: [] };
+        grp = {
+          dateKey,
+          label: formatDateID(dateKey),
+          net: dayNetMap.get(dateKey) ?? 0,
+          items: [],
+        };
         groups.push(grp);
-      }
-      if (!isSavingCategoryTransaction(t)) {
-        grp.net += t.type === 'income' ? t.amount : -t.amount;
       }
       grp.items.push(t);
     }
     return groups;
-  }, [filteredTransactions]);
+  }, [filteredTransactions, paginatedTransactions]);
 
   return (
     <div className="space-y-6">
@@ -587,6 +655,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
         {/* Filters + Transaction Feed */}
         <div
+          ref={listTopRef}
           className={`space-y-4 ${isMobileLayout ? '' : 'lg:col-span-7'}`}
         >
           {/* Search & Segmented Filters */}
@@ -813,6 +882,95 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   </div>
                 </div>
               ))}
+
+              {/* Pagination Controls */}
+              <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2.5 text-xs text-slate-500">
+                  <span className="tabular-nums">
+                    Menampilkan{' '}
+                    <strong className="font-semibold text-slate-900">
+                      {formatNumberID(pageStartItem)}–{formatNumberID(pageEndItem)}
+                    </strong>{' '}
+                    dari{' '}
+                    <strong className="font-semibold text-slate-900">
+                      {formatNumberID(totalItems)}
+                    </strong>{' '}
+                    transaksi
+                  </span>
+
+                  <label className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                    <span>Per hal:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => setPageSize(Number(e.target.value))}
+                      aria-label="Jumlah transaksi per halaman"
+                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      {[10, 20, 30, 50].map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <nav
+                  aria-label="Navigasi halaman riwayat"
+                  className="flex items-center justify-between sm:justify-end gap-1"
+                >
+                  <button
+                    type="button"
+                    onClick={() => goToPage(safePage - 1)}
+                    disabled={safePage <= 1}
+                    aria-label="Halaman sebelumnya"
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {pageNumbers.map((item) => {
+                      if (item === 'ellipsis-left' || item === 'ellipsis-right') {
+                        return (
+                          <span
+                            key={item}
+                            className="px-1.5 text-xs text-slate-400 select-none"
+                          >
+                            …
+                          </span>
+                        );
+                      }
+                      const active = item === safePage;
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => goToPage(item)}
+                          aria-current={active ? 'page' : undefined}
+                          className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-semibold tabular-nums transition-colors ${
+                            active
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => goToPage(safePage + 1)}
+                    disabled={safePage >= totalPages}
+                    aria-label="Halaman berikutnya"
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </nav>
+              </div>
             </div>
           )}
         </div>
