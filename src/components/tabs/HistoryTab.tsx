@@ -593,7 +593,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   <p className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-400 mb-2">
                     <span>{grp.label}</span>
                     <span
-                      className={`inline-flex items-center px-3 py-1 rounded-xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] text-sm font-bold tabular-nums whitespace-nowrap ${
+                      className={`inline-flex items-center px-3 py-1 rounded-xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] text-sm font-extrabold tabular-nums whitespace-nowrap ${
                         grp.net < 0
                           ? 'text-[#D9463E]'
                           : grp.net > 0
