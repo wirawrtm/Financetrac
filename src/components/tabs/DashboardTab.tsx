@@ -129,6 +129,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     Record<string, boolean>
   >({});
   const [showIconModal, setShowIconModal] = useState(false);
+  const [statusCategoryFilter, setStatusCategoryFilter] = useState<string>('ALL');
   const [focusedIconSide, setFocusedIconSide] = useState<
     'income' | 'expense' | null
   >(null);
@@ -220,7 +221,15 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     const filtered = transactions.filter((t) => {
       if (t.type !== 'expense') return false;
       if (isSavingCategoryTransaction(t)) return false;
-      return t.week === selectedBudgetWeek;
+      if (t.week !== selectedBudgetWeek) return false;
+      if (statusCategoryFilter !== 'ALL') {
+        const matchId = t.categoryId === statusCategoryFilter;
+        const matchName =
+          t.categoryName.trim().toLowerCase() ===
+          statusCategoryFilter.trim().toLowerCase();
+        if (!matchId && !matchName) return false;
+      }
+      return true;
     });
 
     const totalSpent = filtered.reduce((acc, t) => acc + t.amount, 0);
@@ -338,6 +347,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     weeklyBudgets,
     weeklyDateRanges,
     categories,
+    statusCategoryFilter,
   ]);
 
   // Grouped recent transactions (latest 3)
@@ -778,17 +788,32 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     <>
       {/* Budget Status Breakdown by Week/Monthly & Category/Subcategory */}
       <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 overflow-hidden">
-            <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
               <h3 className="text-sm font-bold text-slate-900">
                 Status Anggaran
               </h3>
-              <button
-                type="button"
-                onClick={() => onNavigateTab('budget')}
-                className="text-xs font-semibold text-slate-600 hover:text-slate-900"
-              >
-                Kelola
-              </button>
+              <div className="flex items-center gap-2">
+                <select
+                  value={statusCategoryFilter}
+                  onChange={(e) => setStatusCategoryFilter(e.target.value)}
+                  aria-label="Filter kategori status anggaran"
+                  className="rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                >
+                  <option value="ALL">Semua Kategori</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => onNavigateTab('budget')}
+                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 whitespace-nowrap"
+                >
+                  Kelola
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto">

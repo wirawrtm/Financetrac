@@ -72,6 +72,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [weekFilter, setWeekFilter] = useState<'ALL' | WeekKey>('ALL');
   const [typeFilter, setTypeFilter] = useState<'all' | 'expense' | 'income'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -251,6 +252,13 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         }
         if (weekFilter !== 'ALL' && t.week !== weekFilter) return false;
         if (typeFilter !== 'all' && t.type !== typeFilter) return false;
+        if (categoryFilter !== 'ALL') {
+          const matchId = t.categoryId === categoryFilter;
+          const matchName =
+            t.categoryName.trim().toLowerCase() ===
+            categoryFilter.trim().toLowerCase();
+          if (!matchId && !matchName) return false;
+        }
         if (q) {
           const hay = `${t.notes} ${t.categoryName} ${
             t.subcategoryName || ''
@@ -269,6 +277,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     customCalendarPeriod,
     weekFilter,
     typeFilter,
+    categoryFilter,
     searchQuery,
   ]);
 
@@ -298,6 +307,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     customCalendarPeriod.endDate,
     weekFilter,
     typeFilter,
+    categoryFilter,
     searchQuery,
     pageSize,
   ]);
@@ -687,27 +697,43 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               )}
             </div>
 
-            <div className="max-w-full flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto shrink-0 self-end sm:self-auto">
-              {(
-                [
-                  { key: 'all', label: 'Semua' },
-                  { key: 'expense', label: 'Keluar' },
-                  { key: 'income', label: 'Masuk' },
-                ] as const
-              ).map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setTypeFilter(t.key)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                    typeFilter === t.key
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                aria-label="Filter kategori"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+              >
+                <option value="ALL">Semua Kategori</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+
+              <div className="max-w-full flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto shrink-0">
+                {(
+                  [
+                    { key: 'all', label: 'Semua' },
+                    { key: 'expense', label: 'Keluar' },
+                    { key: 'income', label: 'Masuk' },
+                  ] as const
+                ).map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setTypeFilter(t.key)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                      typeFilter === t.key
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
