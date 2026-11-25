@@ -180,7 +180,22 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     };
   }, [transactions]);
 
-  // Weekly stats (Week 1-4)
+  const isCustomPeriodActive = Boolean(
+    customCalendarPeriod?.isActive &&
+      customCalendarPeriod.startDate &&
+      customCalendarPeriod.endDate
+  );
+
+  const periodTransactions = useMemo(() => {
+    if (!isCustomPeriodActive || !customCalendarPeriod) return transactions;
+    return transactions.filter(
+      (t) =>
+        t.date >= customCalendarPeriod.startDate &&
+        t.date <= customCalendarPeriod.endDate
+    );
+  }, [transactions, isCustomPeriodActive, customCalendarPeriod]);
+
+  // Weekly stats (Week 1-4) following active custom period & selected category filter
   const weeklyStats = useMemo(() => {
     const keys: ('Week 1' | 'Week 2' | 'Week 3' | 'Week 4')[] = [
       'Week 1',
@@ -191,14 +206,20 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     return keys.map((week) => {
       let income = 0;
       let expense = 0;
-      for (const t of transactions) {
-        if (t.week === week) {
-          if (isSavingCategoryTransaction(t)) continue;
-          if (t.type === 'income') {
-            income += t.amount;
-          } else {
-            expense += t.amount;
-          }
+      for (const t of periodTransactions) {
+        if (t.week !== week) continue;
+        if (isSavingCategoryTransaction(t)) continue;
+        if (statusCategoryFilter !== 'ALL') {
+          const matchId = t.categoryId === statusCategoryFilter;
+          const matchName =
+            t.categoryName.trim().toLowerCase() ===
+            statusCategoryFilter.trim().toLowerCase();
+          if (!matchId && !matchName) continue;
+        }
+        if (t.type === 'income') {
+          income += t.amount;
+        } else {
+          expense += t.amount;
         }
       }
       const budget = weeklyBudgets[week] || 0;
@@ -217,14 +238,21 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         range: weeklyDateRanges[week],
       };
     });
-  }, [transactions, weeklyBudgets, weeklyDateRanges]);
+  }, [
+    periodTransactions,
+    weeklyBudgets,
+    weeklyDateRanges,
+    statusCategoryFilter,
+  ]);
 
   // Selected week budget breakdown by category & subcategory
   const selectedBudgetBreakdown = useMemo(() => {
-    const filtered = transactions.filter((t) => {
+    const filtered = periodTransactions.filter((t) => {
       if (t.type !== 'expense') return false;
       if (isSavingCategoryTransaction(t)) return false;
-      if (t.week !== selectedBudgetWeek) return false;
+      if (selectedBudgetWeek !== 'Monthly' && t.week !== selectedBudgetWeek) {
+        return false;
+      }
       if (statusCategoryFilter !== 'ALL') {
         const matchId = t.categoryId === statusCategoryFilter;
         const matchName =
@@ -236,7 +264,14 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     });
 
     const totalSpent = filtered.reduce((acc, t) => acc + t.amount, 0);
-    const limit = weeklyBudgets[selectedBudgetWeek] || 0;
+    const limit =
+      selectedBudgetWeek === 'Monthly'
+        ? weeklyBudgets.Monthly ||
+          (weeklyBudgets['Week 1'] || 0) +
+            (weeklyBudgets['Week 2'] || 0) +
+            (weeklyBudgets['Week 3'] || 0) +
+            (weeklyBudgets['Week 4'] || 0)
+        : weeklyBudgets[selectedBudgetWeek] || 0;
 
     type SubBreakdownEntry = {
       name: string;
@@ -319,10 +354,25 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     for (const t of filtered) {
       dailyMap.set(t.date, (dailyMap.get(t.date) || 0) + t.amount);
     }
-    const range = weeklyDateRanges[selectedBudgetWeek];
-    const rangeDates = range
-      ? enumerateIsoDates(range.startDate, range.endDate, 45)
+    const rawRange =
+      selectedBudgetWeek === 'Monthly' &&
+      isCustomPeriodActive &&
+      customCalendarPeriod
+        ? {
+            startDate: customCalendarPeriod.startDate,
+            endDate: customCalendarPeriod.endDate,
+          }
+        : weeklyDateRanges[selectedBudgetWeek];
+    let rangeDates = rawRange
+      ? enumerateIsoDates(rawRange.startDate, rawRange.endDate, 45)
       : [];
+    if (isCustomPeriodActive && customCalendarPeriod) {
+      rangeDates = rangeDates.filter(
+        (d) =>
+          d >= customCalendarPeriod.startDate &&
+          d <= customCalendarPeriod.endDate
+      );
+    }
     const allDateKeys = Array.from(
       new Set([...rangeDates, ...Array.from(dailyMap.keys())])
     ).sort((a, b) => a.localeCompare(b));
@@ -345,12 +395,14 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       dailySeries,
     };
   }, [
-    transactions,
+    periodTransactions,
     selectedBudgetWeek,
     weeklyBudgets,
     weeklyDateRanges,
     categories,
     statusCategoryFilter,
+    isCustomPeriodActive,
+    customCalendarPeriod,
   ]);
 
   // Grouped recent transactions (latest 3)
@@ -842,9 +894,22 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       {/* Budget Status Breakdown by Week/Monthly & Category/Subcategory */}
       <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] p-4 sm:p-5 overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-              <h3 className="text-sm font-bold text-slate-900">
-                Status Anggaran
-              </h3>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-slate-900">
+                  Status Anggaran
+                </h3>
+                {isCustomPeriodActive && customCalendarPeriod && (
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                    {customCalendarPeriod.label
+                      ? `${customCalendarPeriod.label} (${formatDateID(
+                          customCalendarPeriod.startDate
+                        )} – ${formatDateID(customCalendarPeriod.endDate)})`
+                      : `${formatDateID(
+                          customCalendarPeriod.startDate
+                        )} – ${formatDateID(customCalendarPeriod.endDate)}`}
+                  </p>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <select
                   value={statusCategoryFilter}
