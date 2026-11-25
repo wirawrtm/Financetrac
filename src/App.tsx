@@ -755,6 +755,7 @@ export default function App() {
             categories={db.categories}
             weeklyBudgets={db.weeklyBudgets}
             weeklyDateRanges={db.weeklyDateRanges}
+            customCalendarPeriod={db.customCalendarPeriod}
             historyAmountIcons={db.historyAmountIcons}
             currency="IDR"
             gallery={db.gallery}

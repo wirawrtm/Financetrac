@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { formatCurrency, formatNumberID } from '../utils/formatters';
+import { CustomCalendarPeriod } from '../types/finance';
+import { formatCurrency, formatDateID, formatNumberID } from '../utils/formatters';
 
 interface LeatherWalletCardProps {
   balance: number;
@@ -13,6 +14,7 @@ interface LeatherWalletCardProps {
   budget: number;
   remaining: number;
   spending: number;
+  customPeriod?: CustomCalendarPeriod;
   currency?: 'IDR' | 'USD';
 }
 
@@ -26,16 +28,21 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
   budget,
   remaining,
   spending,
+  customPeriod,
   currency = 'IDR',
 }) => {
   const [hidden, setHidden] = useState(false);
   const [primaryCard, setPrimaryCard] = useState<'weekly' | 'monthly'>('weekly');
 
   const isMonthlyPrimary = primaryCard === 'monthly';
+  const isCustomPeriodActive = Boolean(
+    customPeriod?.isActive && customPeriod.startDate && customPeriod.endDate
+  );
+  const customPeriodTitle = customPeriod?.label?.trim() || 'Periode Kustom';
+  const monthlyCardTitle = isCustomPeriodActive
+    ? customPeriodTitle
+    : 'Budget Monthly';
 
-  const activeTitle = isMonthlyPrimary
-    ? 'Budget Monthly'
-    : `Budget ${runningWeekLabel}`;
   const activeBudget = isMonthlyPrimary ? monthlyBudget : budget;
   const activeSpending = isMonthlyPrimary ? monthlySpending : spending;
   const activeRemaining = isMonthlyPrimary ? monthlyRemaining : remaining;
@@ -82,7 +89,7 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
               key="back-monthly"
               type="button"
               onClick={() => setPrimaryCard('monthly')}
-              aria-label="Jadikan kartu Budget Monthly sebagai kartu utama"
+              aria-label={`Jadikan kartu ${monthlyCardTitle} sebagai kartu utama`}
               initial={{ y: 20, scale: 0.96, opacity: 0.5 }}
               animate={{ y: 4, scale: 1, opacity: 1 }}
               exit={{ y: 22, scale: 1.03, opacity: 0 }}
@@ -92,7 +99,7 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
               className="w-full h-14 rounded-t-[26px] bg-gradient-to-r from-[#082458] via-[#0D3984] to-[#144DA8] shadow-md px-4 pt-3.5 flex items-start justify-between gap-2 text-white cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
             >
               <span className="font-bold tracking-tight text-xs sm:text-sm truncate">
-                Budget Monthly
+                {monthlyCardTitle}
               </span>
               <span className="mt-0.5 text-xs text-blue-100/95 font-semibold tabular-nums shrink-0">
                 {hidden
@@ -151,8 +158,22 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
                 }`}
               >
                 Total Spending ·{' '}
-                {isMonthlyPrimary ? 'Monthly' : runningWeekLabel}
+                {isMonthlyPrimary
+                  ? isCustomPeriodActive
+                    ? customPeriodTitle
+                    : 'Monthly'
+                  : runningWeekLabel}
               </p>
+              {isCustomPeriodActive && customPeriod && (
+                <p
+                  className={`mt-0.5 text-[10.5px] font-medium tracking-wide truncate ${
+                    isMonthlyPrimary ? 'text-blue-100/70' : 'text-[#E7D4C5]/70'
+                  }`}
+                >
+                  {formatDateID(customPeriod.startDate)} –{' '}
+                  {formatDateID(customPeriod.endDate)}
+                </p>
+              )}
               <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xl sm:text-[28px] font-bold tracking-tight text-white tabular-nums leading-tight">
                 <span>
                   {hidden

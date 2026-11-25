@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import {
   Category,
+  CustomCalendarPeriod,
   DriveImageItem,
   HistoryAmountIconsConfig,
   TabKey,
@@ -41,6 +42,7 @@ interface DashboardTabProps {
   categories: Category[];
   weeklyBudgets: WeeklyBudgets;
   weeklyDateRanges: WeeklyDateRanges;
+  customCalendarPeriod?: CustomCalendarPeriod;
   historyAmountIcons?: HistoryAmountIconsConfig;
   currency?: 'IDR' | 'USD';
   gallery: DriveImageItem[];
@@ -96,6 +98,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   categories,
   weeklyBudgets,
   weeklyDateRanges,
+  customCalendarPeriod,
   historyAmountIcons = DEFAULT_HISTORY_AMOUNT_ICONS,
   currency = 'IDR',
   gallery,
@@ -388,32 +391,82 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     [weeklyStats, activeRunningWeek]
   );
 
+  const walletCardMetrics = useMemo(() => {
+    const isCustomActive = Boolean(
+      customCalendarPeriod?.isActive &&
+        customCalendarPeriod.startDate &&
+        customCalendarPeriod.endDate
+    );
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+    let savingOut = 0;
+    let savingIn = 0;
+    let weeklyExpense = 0;
+
+    for (const t of transactions) {
+      if (isCustomActive && customCalendarPeriod) {
+        if (
+          t.date < customCalendarPeriod.startDate ||
+          t.date > customCalendarPeriod.endDate
+        ) {
+          continue;
+        }
+      }
+
+      if (isSavingCategoryTransaction(t)) {
+        if (isProtectedSavingTransaction(t)) {
+          if (t.type === 'income') savingIn += t.amount;
+          else savingOut += t.amount;
+        }
+        continue;
+      }
+
+      if (t.type === 'income') {
+        totalIncome += t.amount;
+      } else {
+        totalExpense += t.amount;
+        if (t.week === activeRunningWeek) {
+          weeklyExpense += t.amount;
+        }
+      }
+    }
+
+    const weeklyBudget = weeklyBudgets[activeRunningWeek] || 0;
+    const totalMonthlyPlusWeeklyBudget =
+      (weeklyBudgets['Week 1'] || 0) +
+      (weeklyBudgets['Week 2'] || 0) +
+      (weeklyBudgets['Week 3'] || 0) +
+      (weeklyBudgets['Week 4'] || 0) +
+      (weeklyBudgets.Monthly || 0);
+
+    return {
+      balance: totalIncome - totalExpense,
+      monthlyBudget: totalMonthlyPlusWeeklyBudget,
+      monthlySpending: totalExpense,
+      monthlyRemaining: totalMonthlyPlusWeeklyBudget - totalExpense,
+      monthlySaving: savingOut - savingIn,
+      weeklyBudget,
+      weeklySpending: weeklyExpense,
+      weeklyRemaining: weeklyBudget - weeklyExpense,
+    };
+  }, [transactions, customCalendarPeriod, activeRunningWeek, weeklyBudgets]);
+
   const walletCardSection = (
     <div>
-      {(() => {
-        const totalMonthlyPlusWeeklyBudget =
-          (weeklyBudgets['Week 1'] || 0) +
-          (weeklyBudgets['Week 2'] || 0) +
-          (weeklyBudgets['Week 3'] || 0) +
-          (weeklyBudgets['Week 4'] || 0) +
-          (weeklyBudgets.Monthly || 0);
-        return (
-          <LeatherWalletCard
-            balance={summary.currentBalance}
-            monthlyBudget={totalMonthlyPlusWeeklyBudget}
-            monthlySpending={summary.totalExpense}
-            monthlyRemaining={
-              totalMonthlyPlusWeeklyBudget - summary.totalExpense
-            }
-            monthlySaving={summary.totalSaving}
-            runningWeekLabel={activeRunningWeek}
-            budget={activeRunningStat?.budget ?? 0}
-            remaining={activeRunningStat?.remaining ?? 0}
-            spending={activeRunningStat?.expense ?? 0}
-            currency={currency}
-          />
-        );
-      })()}
+      <LeatherWalletCard
+        balance={walletCardMetrics.balance}
+        monthlyBudget={walletCardMetrics.monthlyBudget}
+        monthlySpending={walletCardMetrics.monthlySpending}
+        monthlyRemaining={walletCardMetrics.monthlyRemaining}
+        monthlySaving={walletCardMetrics.monthlySaving}
+        runningWeekLabel={activeRunningWeek}
+        budget={walletCardMetrics.weeklyBudget}
+        remaining={walletCardMetrics.weeklyRemaining}
+        spending={walletCardMetrics.weeklySpending}
+        customPeriod={customCalendarPeriod}
+        currency={currency}
+      />
     </div>
   );
 
