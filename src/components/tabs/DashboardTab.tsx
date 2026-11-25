@@ -492,12 +492,15 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       (weeklyBudgets['Week 4'] || 0) +
       (weeklyBudgets.Monthly || 0);
 
+    const monthlySaving = savingOut - savingIn;
+
     return {
       balance: totalIncome - totalExpense,
       monthlyBudget: totalMonthlyPlusWeeklyBudget,
       monthlySpending: totalExpense,
-      monthlyRemaining: totalMonthlyPlusWeeklyBudget - totalExpense,
-      monthlySaving: savingOut - savingIn,
+      monthlyRemaining:
+        totalMonthlyPlusWeeklyBudget - totalExpense - monthlySaving,
+      monthlySaving,
       weeklyBudget,
       weeklySpending: weeklyExpense,
       weeklyRemaining: weeklyBudget - weeklyExpense,

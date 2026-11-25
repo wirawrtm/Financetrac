@@ -221,7 +221,11 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
               isMonthlyPrimary ? 'border-blue-300/30' : 'border-[#9A6848]/40'
             }`}
           >
-            <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
+            <div
+              className={`flex items-center min-w-0 flex-1 ${
+                isMonthlyPrimary ? 'gap-2.5 sm:gap-4' : 'gap-3 sm:gap-5'
+              }`}
+            >
               <div className="min-w-0">
                 <p
                   className={`text-[11px] font-medium ${
@@ -254,6 +258,26 @@ export const LeatherWalletCard: React.FC<LeatherWalletCardProps> = ({
                       })}
                 </p>
               </div>
+              {isMonthlyPrimary && (
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-blue-100/75">
+                    Remaining
+                  </p>
+                  <p
+                    className={`mt-0.5 text-xs sm:text-sm font-semibold tabular-nums truncate ${
+                      activeRemaining < 0 ? 'text-rose-200' : 'text-white'
+                    }`}
+                  >
+                    {hidden
+                      ? '••••••'
+                      : `${activeRemaining < 0 ? '-' : ''}${formatCurrency(
+                          Math.abs(activeRemaining),
+                          currency,
+                          { compact: true }
+                        )}`}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="text-right shrink-0">
