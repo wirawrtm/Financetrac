@@ -43,11 +43,44 @@ const PRESET_AMOUNTS = [25000, 50000, 100000, 250000, 500000, 1000000];
 interface BatchRow {
   id: string;
   date: string;
+  time: string;
   type: TransactionType;
   amount: string;
   categoryId: string;
   subcategoryId: string;
   notes: string;
+}
+
+function getLocalIsoDate(d = new Date()): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getLocalTimeHHMM(d = new Date()): string {
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${min}`;
+}
+
+function combineDateAndTime(
+  dateStr: string,
+  timeStr: string,
+  seconds = 0
+): number {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [hh, mm] = timeStr.split(':').map(Number);
+  if (
+    Number.isFinite(y) &&
+    Number.isFinite(m) &&
+    Number.isFinite(d) &&
+    Number.isFinite(hh) &&
+    Number.isFinite(mm)
+  ) {
+    return new Date(y, m - 1, d, hh, mm, seconds, 0).getTime();
+  }
+  return Date.now();
 }
 
 export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
@@ -65,10 +98,11 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
   const [mode, setMode] = useState<'single' | 'multiple'>('single');
 
   // Single / Edit form state
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = getLocalIsoDate();
   const [type, setType] = useState<TransactionType>('expense');
   const [amountStr, setAmountStr] = useState('');
   const [date, setDate] = useState(todayIso);
+  const [time, setTime] = useState(() => getLocalTimeHHMM());
   const [periodMode, setPeriodMode] = useState<'auto' | 'Monthly'>('auto');
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
@@ -83,7 +117,8 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
     const defaultCat = categories[0];
     return {
       id: generateId('row'),
-      date: todayIso,
+      date: getLocalIsoDate(),
+      time: getLocalTimeHHMM(),
       type: 'expense',
       amount: '',
       categoryId: defaultCat?.id || '',
@@ -104,11 +139,13 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
       setType(editingTransaction.type);
       setAmountStr(String(editingTransaction.amount));
       setDate(editingTransaction.date);
+      setTime(getLocalTimeHHMM(new Date(editingTransaction.createdAt)));
       setPeriodMode(editingTransaction.week === 'Monthly' ? 'Monthly' : 'auto');
       setCategoryId(editingTransaction.categoryId);
       setSubcategoryId(editingTransaction.subcategoryId || '');
       setNotes(editingTransaction.notes);
     } else {
+      setTime(getLocalTimeHHMM());
       setPeriodMode('auto');
       const defaultCat = categories[0];
       if (!categoryId && defaultCat) {
@@ -179,6 +216,21 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
     const cat = selectedCategory || categories[0];
     const sub = cat?.subcategories.find((s) => s.id === subcategoryId);
 
+    const resolvedCreatedAt = editingTransaction
+      ? time === getLocalTimeHHMM(new Date(editingTransaction.createdAt)) &&
+        date === editingTransaction.date
+        ? editingTransaction.createdAt
+        : combineDateAndTime(
+            date,
+            time || getLocalTimeHHMM(new Date(editingTransaction.createdAt)),
+            new Date(editingTransaction.createdAt).getSeconds()
+          )
+      : combineDateAndTime(
+          date,
+          time || getLocalTimeHHMM(),
+          new Date().getSeconds()
+        );
+
     const payload: Transaction = {
       id: editingTransaction ? editingTransaction.id : generateId('trx'),
       date,
@@ -191,13 +243,14 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
       subcategoryName: sub?.name,
       notes: notes.trim() || sub?.name || cat?.name || 'Transaksi',
       channel: editingTransaction?.channel || 'Manual',
-      createdAt: editingTransaction ? editingTransaction.createdAt : Date.now(),
+      createdAt: resolvedCreatedAt,
     };
 
     onSaveSingle(payload, openPortalAfter);
     if (!editingTransaction) {
       setAmountStr('');
       setNotes('');
+      setTime(getLocalTimeHHMM());
       setPeriodMode('auto');
     }
   };
@@ -205,7 +258,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
   const handleSaveMultiple = (e: React.FormEvent) => {
     e.preventDefault();
     const valid: Transaction[] = [];
-    const now = Date.now();
+    const nowSec = new Date().getSeconds();
 
     batchRows.forEach((row, idx) => {
       const amt = Number(row.amount.replace(/[^\d]/g, '')) || 0;
@@ -226,7 +279,11 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
         subcategoryName: sub?.name,
         notes: row.notes.trim() || sub?.name || cat?.name || 'Transaksi Batch',
         channel: 'Manual',
-        createdAt: now + idx,
+        createdAt: combineDateAndTime(
+          row.date,
+          row.time || getLocalTimeHHMM(),
+          nowSec
+        ) + idx,
       });
     });
 
@@ -250,7 +307,7 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {editingTransaction
-              ? 'Perbarui detail transaksi tanpa mengubah waktu pencatatan asli'
+              ? 'Perbarui detail, tanggal, maupun jam transaksi'
               : 'Catat transaksi tunggal atau banyak baris sekaligus'}
           </p>
         </div>
@@ -360,18 +417,38 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
               </div>
             </div>
 
-            {/* Date & Detected Week / Monthly Override */}
+            {/* Date, Time & Detected Week / Monthly Override */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Tanggal Transaksi
-              </label>
-              <input
-                type="date"
-                required
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
-              />
+              <div
+                className={`grid gap-3 ${
+                  isMobileLayout ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
+                }`}
+              >
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Tanggal Transaksi
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Jam Transaksi
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </div>
+              </div>
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[11px] text-slate-500">
                   Otomatis masuk ke:{' '}
@@ -583,9 +660,10 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
 
           <div className="space-y-2.5">
             {!isMobileLayout && (
-              <div className="hidden lg:grid lg:grid-cols-[32px_138px_92px_132px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_36px] gap-2.5 px-3 text-[11px] font-semibold text-slate-500">
+              <div className="hidden lg:grid lg:grid-cols-[32px_132px_98px_88px_124px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_36px] gap-2 px-3 text-[11px] font-semibold text-slate-500">
                 <span>#</span>
                 <span>Tanggal</span>
+                <span>Jam</span>
                 <span>Tipe</span>
                 <span>Nominal</span>
                 <span>Kategori</span>
@@ -602,10 +680,10 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
               return (
                 <div
                   key={row.id}
-                  className={`grid gap-2.5 items-center p-3 rounded-xl bg-slate-50 border border-slate-100 ${
+                  className={`grid gap-2 items-center p-3 rounded-xl bg-slate-50 border border-slate-100 ${
                     isMobileLayout
                       ? 'grid-cols-1'
-                      : 'grid-cols-1 lg:grid-cols-[32px_138px_92px_132px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_36px]'
+                      : 'grid-cols-1 lg:grid-cols-[32px_132px_98px_88px_124px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_36px]'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -641,6 +719,20 @@ export const InputTransactionTab: React.FC<InputTransactionTabProps> = ({
                       )
                     }
                     className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono"
+                  />
+
+                  <input
+                    type="time"
+                    aria-label={`Jam baris ${idx + 1}`}
+                    value={row.time}
+                    onChange={(e) =>
+                      setBatchRows((prev) =>
+                        prev.map((r) =>
+                          r.id === row.id ? { ...r, time: e.target.value } : r
+                        )
+                      )
+                    }
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-mono"
                   />
 
                   <select
