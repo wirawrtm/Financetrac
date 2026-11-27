@@ -1023,11 +1023,11 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 const maxVal = peakAmount > 0 ? peakAmount : 1;
 
                 const svgW = 360;
-                const svgH = 132;
-                const padLeft = 18;
-                const padRight = 18;
-                const padTop = 20;
-                const padBottom = 22;
+                const svgH = 166;
+                const padLeft = 22;
+                const padRight = 22;
+                const padTop = 30;
+                const padBottom = 24;
                 const plotW = svgW - padLeft - padRight;
                 const plotH = svgH - padTop - padBottom;
 
@@ -1057,28 +1057,107 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       ).toFixed(1)} Z`
                     : '';
 
-                const valueLabelIndices = new Set<number>();
+                // Smart 2D collision-free label placement (highest priority: active point, then largest amounts)
+                type PlacedLabel = {
+                  idx: number;
+                  text: string;
+                  boxX: number;
+                  boxY: number;
+                  boxW: number;
+                  boxH: number;
+                  textX: number;
+                  textY: number;
+                  isActive: boolean;
+                };
+
+                const placedLabels: PlacedLabel[] = [];
+                const candidateIndices: number[] = [];
                 if (activeIdx !== null) {
-                  valueLabelIndices.add(activeIdx);
+                  candidateIndices.push(activeIdx);
                 }
-                if (coords.length <= 10) {
-                  coords.forEach((_, idx) => valueLabelIndices.add(idx));
-                } else {
-                  let lastLabeledX = -Infinity;
-                  coords.forEach((pt, idx) => {
-                    if (pt.amount <= 0) return;
-                    if (
-                      activeIdx !== null &&
-                      Math.abs(pt.x - coords[activeIdx].x) < 32
-                    ) {
-                      return;
-                    }
-                    if (pt.x - lastLabeledX >= 34) {
-                      valueLabelIndices.add(idx);
-                      lastLabeledX = pt.x;
-                    }
+                const nonZeroByValue = coords
+                  .map((pt, idx) => ({ idx, amount: pt.amount }))
+                  .filter(
+                    (item) => item.amount > 0 && item.idx !== activeIdx
+                  )
+                  .sort((a, b) => b.amount - a.amount);
+                for (const item of nonZeroByValue) {
+                  candidateIndices.push(item.idx);
+                }
+
+                const overlapsAny = (
+                  x1: number,
+                  y1: number,
+                  w1: number,
+                  h1: number
+                ) =>
+                  placedLabels.some((pl) => {
+                    const padX = 4;
+                    const padY = 3;
+                    return !(
+                      x1 + w1 + padX <= pl.boxX ||
+                      pl.boxX + pl.boxW + padX <= x1 ||
+                      y1 + h1 + padY <= pl.boxY ||
+                      pl.boxY + pl.boxH + padY <= y1
+                    );
                   });
+
+                for (const idx of candidateIndices) {
+                  const pt = coords[idx];
+                  const isActive = idx === activeIdx;
+                  const labelText = formatCurrency(pt.amount, currency, {
+                    compact: true,
+                  });
+                  const charW = isActive ? 6.5 : 5.9;
+                  const boxW = Math.max(30, Math.round(labelText.length * charW + 10));
+                  const boxH = isActive ? 18 : 16;
+                  const minX = 4;
+                  const maxX = svgW - boxW - 4;
+                  const boxX = Math.max(minX, Math.min(maxX, pt.x - boxW / 2));
+
+                  // Try above point, slightly higher above point, then below point
+                  const candidateYs = [
+                    pt.y - boxH - 7,
+                    pt.y - boxH - 22,
+                    pt.y + 8,
+                  ].filter(
+                    (cy) => cy >= 2 && cy + boxH <= padTop + plotH - 2
+                  );
+
+                  let chosenY: number | null = null;
+                  for (const cy of candidateYs) {
+                    if (isActive || !overlapsAny(boxX, cy, boxW, boxH)) {
+                      chosenY = cy;
+                      break;
+                    }
+                  }
+                  if (chosenY === null && isActive) {
+                    chosenY = Math.max(2, pt.y - boxH - 7);
+                  }
+                  if (chosenY !== null) {
+                    placedLabels.push({
+                      idx,
+                      text: labelText,
+                      boxX,
+                      boxY: chosenY,
+                      boxW,
+                      boxH,
+                      textX: boxX + boxW / 2,
+                      textY: chosenY + boxH / 2 + 0.5,
+                      isActive,
+                    });
+                  }
                 }
+
+                // Draw active label last so it always sits cleanly on top
+                placedLabels.sort((a, b) => Number(a.isActive) - Number(b.isActive));
+
+                const xAxisStep =
+                  coords.length > 16
+                    ? Math.ceil(coords.length / 8)
+                    : coords.length > 10
+                    ? 2
+                    : 1;
 
                 return (
                   <div className="space-y-2">
@@ -1107,12 +1186,12 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       </div>
                     ) : (
                       <div
-                        className="rounded-xl bg-slate-50/70 border border-slate-100 p-2"
+                        className="rounded-xl bg-slate-50/70 border border-slate-100 px-2 py-2.5"
                         onMouseLeave={() => setHoveredChartIdx(null)}
                       >
                         <svg
                           viewBox={`0 0 ${svgW} ${svgH}`}
-                          className="w-full h-32 overflow-visible select-none"
+                          className="w-full h-40 sm:h-44 overflow-visible select-none"
                           role="img"
                           aria-label={`Grafik garis pengeluaran harian ${selectedBudgetWeek}`}
                         >
@@ -1184,38 +1263,42 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                             />
                           )}
 
-                          {/* Data Points + Hit Targets + X-Axis Labels */}
+                          {/* Data Points + X-Axis Labels + Hit Targets */}
                           {coords.map((pt, idx) => {
                             const isActive = activeIdx === idx;
                             const showDot =
                               isActive ||
                               pt.amount > 0 ||
                               coords.length <= 10;
+                            const showXAxisLabel =
+                              isActive ||
+                              idx === 0 ||
+                              idx === coords.length - 1 ||
+                              idx % xAxisStep === 0;
 
                             return (
                               <g key={pt.date}>
-                                <text
-                                  x={pt.x}
-                                  y={svgH - 4}
-                                  textAnchor="middle"
-                                  className={`${
-                                    coords.length > 16
-                                      ? 'text-[7.5px]'
-                                      : 'text-[9px]'
-                                  } font-mono ${
-                                    isActive
-                                      ? 'fill-slate-900 font-bold'
-                                      : 'fill-slate-400'
-                                  }`}
-                                >
-                                  {pt.shortLabel}
-                                </text>
+                                {showXAxisLabel && (
+                                  <text
+                                    x={pt.x}
+                                    y={svgH - 5}
+                                    textAnchor="middle"
+                                    fontSize={9.5}
+                                    className={`font-sans tabular-nums ${
+                                      isActive
+                                        ? 'fill-slate-900 font-bold'
+                                        : 'fill-slate-500 font-medium'
+                                    }`}
+                                  >
+                                    {pt.shortLabel}
+                                  </text>
+                                )}
 
                                 {showDot && (
                                   <circle
                                     cx={pt.x}
                                     cy={pt.y}
-                                    r={isActive ? 4.5 : pt.amount > 0 ? 3 : 2}
+                                    r={isActive ? 4.5 : pt.amount > 0 ? 3.2 : 2.2}
                                     fill={
                                       isActive
                                         ? '#0F172A'
@@ -1224,39 +1307,8 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                                         : '#CBD5E1'
                                     }
                                     stroke="#FFFFFF"
-                                    strokeWidth={isActive ? 2 : 1.2}
+                                    strokeWidth={isActive ? 2 : 1.4}
                                   />
-                                )}
-
-                                {showDot && valueLabelIndices.has(idx) && (
-                                  <text
-                                    x={pt.x}
-                                    y={pt.y - 7}
-                                    textAnchor={
-                                      idx === 0
-                                        ? 'start'
-                                        : idx === coords.length - 1
-                                        ? 'end'
-                                        : 'middle'
-                                    }
-                                    style={{
-                                      paintOrder: 'stroke',
-                                      stroke: '#F8FAFC',
-                                      strokeWidth: 3,
-                                      strokeLinejoin: 'round',
-                                    }}
-                                    className={`text-[8.5px] font-mono tabular-nums ${
-                                      isActive
-                                        ? 'fill-slate-900 font-bold'
-                                        : pt.amount > 0
-                                        ? 'fill-slate-700 font-semibold'
-                                        : 'fill-slate-400'
-                                    }`}
-                                  >
-                                    {formatCurrency(pt.amount, currency, {
-                                      compact: true,
-                                    })}
-                                  </text>
                                 )}
 
                                 {/* Invisible wider hover/tap column */}
@@ -1268,12 +1320,12 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                                       plotW / Math.max(coords.length * 2, 2)
                                     )
                                   }
-                                  y={padTop - 4}
+                                  y={4}
                                   width={Math.max(
                                     12,
                                     plotW / Math.max(coords.length, 1)
                                   )}
-                                  height={plotH + 16}
+                                  height={svgH - 8}
                                   fill="transparent"
                                   className="cursor-pointer"
                                   onMouseEnter={() => setHoveredChartIdx(idx)}
@@ -1286,6 +1338,39 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                               </g>
                             );
                           })}
+
+                          {/* Topmost Value Labels Layer (high-contrast pill badges, non-overlapping) */}
+                          <g className="pointer-events-none">
+                            {placedLabels.map((lbl) => (
+                              <g key={`val-${lbl.idx}`}>
+                                <rect
+                                  x={lbl.boxX}
+                                  y={lbl.boxY}
+                                  width={lbl.boxW}
+                                  height={lbl.boxH}
+                                  rx={4.5}
+                                  fill={lbl.isActive ? '#0F172A' : '#FFFFFF'}
+                                  stroke={lbl.isActive ? '#0F172A' : '#CBD5E1'}
+                                  strokeWidth={lbl.isActive ? 1 : 0.85}
+                                  fillOpacity={lbl.isActive ? 0.98 : 0.95}
+                                />
+                                <text
+                                  x={lbl.textX}
+                                  y={lbl.textY}
+                                  textAnchor="middle"
+                                  dominantBaseline="central"
+                                  fontSize={lbl.isActive ? 10.5 : 9.8}
+                                  className={`font-sans tabular-nums ${
+                                    lbl.isActive
+                                      ? 'fill-white font-bold'
+                                      : 'fill-slate-800 font-semibold'
+                                  }`}
+                                >
+                                  {lbl.text}
+                                </text>
+                              </g>
+                            ))}
+                          </g>
                         </svg>
                       </div>
                     )}
